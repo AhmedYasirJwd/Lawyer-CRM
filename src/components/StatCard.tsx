@@ -23,13 +23,14 @@ export function StatCard({
   href?: string;
 }) {
   const content = (
-    <div className={`card flex items-center gap-2.5 p-3 ${href ? "transition-colors hover:bg-background" : ""}`}>
-      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${TONE_CLASSES[tone]}`}>
+    <div className={`card flex items-center gap-2 p-2.5 sm:gap-2.5 sm:p-3 ${href ? "transition-colors hover:bg-background" : ""}`}>
+      {/* Icon drops on phones so three cards fit on one row. */}
+      <div className={`hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex ${TONE_CLASSES[tone]}`}>
         <Icon size={15} />
       </div>
       <div className="min-w-0">
         <div className="text-lg font-bold text-ink leading-none">{value}</div>
-        <div className="mt-1 truncate text-[11px] text-muted">{label}</div>
+        <div className="mt-1 truncate text-xs font-medium text-muted">{label}</div>
       </div>
     </div>
   );

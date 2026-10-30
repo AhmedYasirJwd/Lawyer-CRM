@@ -19,7 +19,7 @@ export default function EditTaskPage({ params }: { params: Promise<{ id: string 
     <div>
       <div className="mb-5">
         {/* Plain <a>, not next/link — this page is reachable offline. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        { }
         <a
           href={task?.caseId ? `/cases/${task.caseId}` : "/tasks"}
           className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink"

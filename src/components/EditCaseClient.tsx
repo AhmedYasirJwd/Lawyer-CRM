@@ -47,7 +47,7 @@ export function EditCaseClient({ caseId }: { caseId: string }) {
   return (
     <div>
       <div className="mb-5">
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- forces a real navigation so the service worker can serve the offline shell */}
+        { }
         <a
           href={`/cases/${item.id}`}
           className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink"

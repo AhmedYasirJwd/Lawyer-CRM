@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, AlertCircle, WifiOff } from "lucide-react";
-import type { CaseStatus, LegalCase, Priority } from "@/lib/types";
-import { CASE_ROLES, CASE_TYPES, CASE_STAGES } from "@/lib/types";
+import type { CaseStatus, LegalCase, Priority, PartySide, RelationType } from "@/lib/types";
+import { CASE_ROLES, CASE_TYPES, CASE_STAGES, RELATION_TYPES } from "@/lib/types";
 import { Autocomplete } from "./Autocomplete";
 import { KARACHI_COURTS } from "@/lib/karachi-courts";
 import { saveCase } from "@/lib/case-sync";
@@ -57,21 +57,36 @@ const PARTY_2_ROLES = [
   "Third Party",
   "Other",
 ];
-// Any party beyond the first two doesn't fit neatly into either side, so offer everything.
-const OTHER_PARTY_ROLES = Array.from(new Set([...PARTY_1_ROLES, ...PARTY_2_ROLES])).sort();
-
-function rolesForPartyIndex(index: number): string[] {
-  if (index === 0) return PARTY_1_ROLES;
-  if (index === 1) return PARTY_2_ROLES;
-  return OTHER_PARTY_ROLES;
+function rolesForSide(side: PartySide): string[] {
+  return side === 1 ? PARTY_1_ROLES : PARTY_2_ROLES;
 }
 
 interface PartyDraft {
   key: string;
+  side: PartySide;
   name: string;
   role: string;
   phone: string;
-  email: string;
+  cnic: string;
+  address: string;
+  relationType: RelationType | "";
+  relationName: string;
+}
+
+/** Names on one side, joined for the auto-filled case title — e.g. two
+ *  co-plaintiffs read as "Ali Khan & Zubair Khan" rather than just the first. */
+function sideNameLine(parties: PartyDraft[], side: PartySide): string {
+  return parties
+    .filter((p) => p.side === side)
+    .map((p) => p.name.trim())
+    .filter(Boolean)
+    .join(" & ");
+}
+
+function autoTitle(parties: PartyDraft[]): string {
+  const p1 = sideNameLine(parties, 1);
+  const p2 = sideNameLine(parties, 2);
+  return p1 && p2 ? `${p1} vs ${p2}` : p1 || p2 || "";
 }
 
 function Field({
@@ -102,12 +117,6 @@ function Field({
 }
 
 const REQUIRED_FIELD_ORDER: Array<keyof FieldErrors> = ["caseNumber", "title", "court", "filingDate"];
-const REQUIRED_FIELD_LABEL: Record<keyof FieldErrors, string> = {
-  caseNumber: "Case Number",
-  title: "Case Title",
-  court: "Court",
-  filingDate: "Filing Date",
-};
 
 /** Jumps to and focuses the first invalid required field, so the person
  *  never has to hunt for what's blocking save — the page does it for them. */
@@ -125,8 +134,18 @@ const inputClass =
 const inputErrorClass =
   "w-full rounded-xl border border-red-400 bg-red-50/40 px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500";
 
-function emptyParty(role: string = "Other"): PartyDraft {
-  return { key: crypto.randomUUID(), name: "", role, phone: "", email: "" };
+function emptyParty(side: PartySide, role: string = "Other"): PartyDraft {
+  return {
+    key: crypto.randomUUID(),
+    side,
+    name: "",
+    role,
+    phone: "",
+    cnic: "",
+    address: "",
+    relationType: "",
+    relationName: "",
+  };
 }
 
 interface FieldErrors {
@@ -154,15 +173,16 @@ function validateForm(form: {
   return errors;
 }
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Loose on purpose — just enough to catch "clearly not a phone number", not
 // to enforce a specific country format.
 const PHONE_RE = /^[0-9+()\-\s]{7,}$/;
+// Pakistani CNIC, with or without the dashes: 12345-1234567-1 or 1234512345671.
+const CNIC_RE = /^\d{5}-?\d{7}-?\d{1}$/;
 
-function validateParty(p: PartyDraft): { phone?: string; email?: string } {
-  const errors: { phone?: string; email?: string } = {};
+function validateParty(p: PartyDraft): { phone?: string; cnic?: string } {
+  const errors: { phone?: string; cnic?: string } = {};
   if (p.phone.trim() && !PHONE_RE.test(p.phone.trim())) errors.phone = "Doesn't look like a valid phone number.";
-  if (p.email.trim() && !EMAIL_RE.test(p.email.trim())) errors.email = "Doesn't look like a valid email.";
+  if (p.cnic.trim() && !CNIC_RE.test(p.cnic.trim())) errors.cnic = "Doesn't look like a valid CNIC (e.g. 42101-1234567-1).";
   return errors;
 }
 
@@ -180,7 +200,7 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
   // src/lib/case-sync.ts.
   const idRef = useRef(initial?.id ?? crypto.randomUUID());
 
-  const [form, setForm] = useState({
+  const [formState, setForm] = useState({
     caseNumber: initial?.caseNumber ?? "",
     title: initial?.title ?? "",
     court: initial?.court ?? "",
@@ -196,22 +216,56 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     initial?.parties && initial.parties.length > 0
       ? initial.parties.map((p) => ({
           key: p.id,
+          side: p.side ?? 1,
           name: p.name,
           role: p.role,
           phone: p.phone ?? "",
-          email: p.email ?? "",
+          cnic: p.cnic ?? "",
+          address: p.address ?? "",
+          relationType: p.relationType ?? "",
+          relationName: p.relationName ?? "",
         }))
-      : [emptyParty("Plaintiff"), emptyParty("Defendant")]
+      : [emptyParty(1, "Plaintiff"), emptyParty(2, "Defendant")]
   );
-  const [partyTouched, setPartyTouched] = useState<Record<string, { phone?: boolean; email?: boolean }>>({});
+  const [partyTouched, setPartyTouched] = useState<Record<string, { phone?: boolean; cnic?: boolean }>>({});
+
+  // The case title auto-fills as "{Party 1 side} vs {Party 2 side}" (each
+  // side's names joined with "&" when more than one person is on it) while
+  // the title is still following that pattern. On create that's always true
+  // at first. On edit, we only keep auto-syncing if the saved title still
+  // matches what the saved parties would produce — i.e. nobody has
+  // deliberately customized it away from the default. A hand-written title
+  // (e.g. "Estate of X v. Bank") is left alone so editing a party's phone
+  // number doesn't clobber it.
+  const [titleTouched, setTitleTouched] = useState(() => {
+    if (!initial) return false;
+    const initialDrafts: PartyDraft[] = initial.parties.map((p) => ({
+      key: p.id,
+      side: p.side ?? 1,
+      name: p.name,
+      role: p.role,
+      phone: "",
+      cnic: "",
+      address: "",
+      relationType: "",
+      relationName: "",
+    }));
+    return initial.title !== autoTitle(initialDrafts);
+  });
+  // While untouched, the title is derived from the parties on every render
+  // rather than copied into state by an effect.
+  const form = useMemo(
+    () => (titleTouched ? formState : { ...formState, title: autoTitle(parties) }),
+    [formState, parties, titleTouched]
+  );
 
   const fieldErrors = useMemo(() => validateForm(form), [form]);
   const partyErrors = useMemo(() => {
-    const map: Record<string, { phone?: string; email?: string }> = {};
+    const map: Record<string, { phone?: string; cnic?: string }> = {};
     for (const p of parties) map[p.key] = validateParty(p);
     return map;
   }, [parties]);
-  // Party phone/email are shown as inline warnings but never block saving —
+  // Party phone/CNIC are shown as inline warnings but never block saving —
   // only the four required case fields do. Blocking on a legacy phone
   // number someone didn't even touch (while editing an old case) is exactly
   // the kind of "why won't this just save" friction to avoid.
@@ -223,31 +277,10 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
   function shown<K extends keyof FieldErrors>(key: K): string | undefined {
     return (touched[key] || attemptedSubmit) ? fieldErrors[key] : undefined;
   }
-  function partyShown(key: string, field: "phone" | "email"): string | undefined {
+  function partyShown(key: string, field: "phone" | "cnic"): string | undefined {
     return (partyTouched[key]?.[field] || attemptedSubmit) ? partyErrors[key]?.[field] : undefined;
   }
 
-  // The case title auto-fills as "{Party 1} vs {Party 2}" while the title is
-  // still following that pattern. On create that's always true at first. On
-  // edit, we only keep auto-syncing if the saved title still matches what the
-  // saved parties would produce — i.e. nobody has deliberately customized it
-  // away from the default. A hand-written title (e.g. "Estate of X v. Bank")
-  // is left alone so editing a party's phone number doesn't clobber it.
-  const [titleTouched, setTitleTouched] = useState(() => {
-    if (!initial) return false;
-    const p1 = initial.parties[0]?.name.trim();
-    const p2 = initial.parties[1]?.name.trim();
-    const computed = p1 && p2 ? `${p1} vs ${p2}` : p1 || p2 || "";
-    return initial.title !== computed;
-  });
-
-  useEffect(() => {
-    if (titleTouched) return;
-    const p1 = parties[0]?.name.trim();
-    const p2 = parties[1]?.name.trim();
-    const computed = p1 && p2 ? `${p1} vs ${p2}` : p1 || p2 || "";
-    setForm((f) => (f.title === computed ? f : { ...f, title: computed }));
-  }, [parties, titleTouched]);
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -265,8 +298,8 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     setParties((ps) => ps.map((p) => (p.key === key ? { ...p, [field]: value } : p)));
   }
 
-  function addParty() {
-    setParties((ps) => [...ps, emptyParty()]);
+  function addParty(side: PartySide) {
+    setParties((ps) => [...ps, emptyParty(side, "Other")]);
   }
 
   function removeParty(key: string) {
@@ -293,10 +326,14 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       .filter((p) => p.name.trim())
       .map((p) => ({
         id: crypto.randomUUID(),
+        side: p.side,
         name: p.name.trim(),
         role: p.role,
         phone: p.phone.trim() || undefined,
-        email: p.email.trim() || undefined,
+        cnic: p.cnic.trim() || undefined,
+        address: p.address.trim() || undefined,
+        relationType: p.relationType || undefined,
+        relationName: p.relationName.trim() || undefined,
       }));
 
     const payload = {
@@ -506,82 +543,121 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
         </div>
       </div>
 
-      <div className="card space-y-4 p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-ink">Parties</h2>
-          <button
-            type="button"
-            onClick={addParty}
-            className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
-          >
-            <Plus size={15} />
-            Add Party
-          </button>
-        </div>
+      {([1, 2] as const).map((side) => {
+        const sideParties = parties.filter((p) => p.side === side);
+        return (
+          <div key={side} className="card space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-ink">
+                Party {side}
+                <span className="ml-1.5 text-xs font-normal text-faint">
+                  {side === 1 ? "— initiating / relief-seeking" : "— adverse / responding"}
+                </span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => addParty(side)}
+                className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
+              >
+                <Plus size={15} />
+                Add Person
+              </button>
+            </div>
 
-        {parties.length === 0 ? (
-          <p className="text-sm text-muted">No parties added yet.</p>
-        ) : (
-          <div className="space-y-4">
-            {parties.map((p, i) => (
-              <div key={p.key} className="rounded-xl border border-line p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs font-medium uppercase tracking-wide text-faint">
-                    Party {i + 1}
-                    {i === 0 && <span className="ml-1.5 normal-case text-faint">— initiating / relief-seeking</span>}
-                    {i === 1 && <span className="ml-1.5 normal-case text-faint">— adverse / responding</span>}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => removeParty(p.key)}
-                    className="flex h-7 w-7 items-center justify-center rounded-lg text-faint hover:bg-red-50 hover:text-red-600"
-                    aria-label="Remove party"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Name">
-                    <input
-                      className={inputClass}
-                      value={p.name}
-                      onChange={(e) => updateParty(p.key, "name", e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Role">
-                    <Autocomplete
-                      placeholder="Start typing to search roles..."
-                      value={p.role}
-                      onChange={(v) => updateParty(p.key, "role", v)}
-                      options={rolesForPartyIndex(i)}
-                    />
-                  </Field>
-                  <Field label="Phone" error={partyShown(p.key, "phone")}>
-                    <input
-                      className={partyShown(p.key, "phone") ? inputErrorClass : inputClass}
-                      value={p.phone}
-                      onChange={(e) => updateParty(p.key, "phone", e.target.value)}
-                      onBlur={() =>
-                        setPartyTouched((t) => ({ ...t, [p.key]: { ...t[p.key], phone: true } }))
-                      }
-                    />
-                  </Field>
-                  <Field label="Email" error={partyShown(p.key, "email")}>
-                    <input
-                      className={partyShown(p.key, "email") ? inputErrorClass : inputClass}
-                      value={p.email}
-                      onChange={(e) => updateParty(p.key, "email", e.target.value)}
-                      onBlur={() =>
-                        setPartyTouched((t) => ({ ...t, [p.key]: { ...t[p.key], email: true } }))
-                      }
-                    />
-                  </Field>
-                </div>
+            {sideParties.length === 0 ? (
+              <p className="text-sm text-muted">No one added to this side yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {sideParties.map((p, i) => (
+                  <div key={p.key} className="rounded-xl border border-line p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase tracking-wide text-faint">
+                        {sideParties.length > 1 ? `Person ${i + 1}` : "Details"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => removeParty(p.key)}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-faint hover:bg-red-50 hover:text-red-600"
+                        aria-label="Remove person"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Name">
+                        <input
+                          className={inputClass}
+                          value={p.name}
+                          onChange={(e) => updateParty(p.key, "name", e.target.value)}
+                        />
+                      </Field>
+                      <Field label="Role">
+                        <Autocomplete
+                          placeholder="Start typing to search roles..."
+                          value={p.role}
+                          onChange={(v) => updateParty(p.key, "role", v)}
+                          options={rolesForSide(side)}
+                        />
+                      </Field>
+                      <Field label="Relation">
+                        <div className="flex gap-2">
+                          <select
+                            className={`${inputClass} shrink-0 basis-36`}
+                            value={p.relationType}
+                            onChange={(e) => updateParty(p.key, "relationType", e.target.value as RelationType | "")}
+                          >
+                            <option value="">— None —</option>
+                            {RELATION_TYPES.map((rt) => (
+                              <option key={rt} value={rt}>
+                                {rt}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            className={inputClass}
+                            placeholder="Relative's name"
+                            value={p.relationName}
+                            onChange={(e) => updateParty(p.key, "relationName", e.target.value)}
+                            disabled={!p.relationType}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="CNIC" error={partyShown(p.key, "cnic")}>
+                        <input
+                          className={partyShown(p.key, "cnic") ? inputErrorClass : inputClass}
+                          placeholder="42101-1234567-1"
+                          value={p.cnic}
+                          onChange={(e) => updateParty(p.key, "cnic", e.target.value)}
+                          onBlur={() => setPartyTouched((t) => ({ ...t, [p.key]: { ...t[p.key], cnic: true } }))}
+                        />
+                      </Field>
+                      <Field label="Phone" error={partyShown(p.key, "phone")}>
+                        <input
+                          className={partyShown(p.key, "phone") ? inputErrorClass : inputClass}
+                          value={p.phone}
+                          onChange={(e) => updateParty(p.key, "phone", e.target.value)}
+                          onBlur={() =>
+                            setPartyTouched((t) => ({ ...t, [p.key]: { ...t[p.key], phone: true } }))
+                          }
+                        />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field label="Address">
+                          <input
+                            className={inputClass}
+                            value={p.address}
+                            onChange={(e) => updateParty(p.key, "address", e.target.value)}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </div>
+        );
+      })}
 
       <div className="flex justify-end gap-3">
         <button

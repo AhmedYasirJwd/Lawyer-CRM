@@ -35,10 +35,15 @@ function writeCache(user: CurrentUser) {
  *  from the local Supabase session (getSession() reads local storage, not
  *  the network, so this works offline too). */
 export function useCurrentUser(): CurrentUser {
-  const [user, setUser] = useState<CurrentUser>(readCache);
+  const [user, setUser] = useState<CurrentUser>(FALLBACK);
 
   useEffect(() => {
     let cancelled = false;
+    const cached = readCache();
+    if (cached.name !== FALLBACK.name || cached.email !== FALLBACK.email) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- cache lives in localStorage, which only exists after hydration
+      setUser(cached);
+    }
     (async () => {
       try {
         const supabase = createSupabaseBrowserClient();

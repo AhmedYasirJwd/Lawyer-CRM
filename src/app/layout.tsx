@@ -1,10 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import AppShell from "@/components/AppShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { CaseSyncManager } from "@/components/CaseSyncManager";
 import { ThemeProvider } from "@/lib/theme-context";
 import { Analytics } from "@vercel/analytics/next";
+
+// Sets the "dark" class on <html> synchronously, before hydration, from the
+// same localStorage key theme-context.tsx reads — otherwise the page would
+// briefly flash light before ThemeProvider's effect runs on mount.
+const THEME_INIT_SCRIPT = `try{if(localStorage.getItem('lexcase-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}`;
 
 export const metadata: Metadata = {
   title: "LexCase | Legal Case Management",
@@ -38,6 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full bg-background text-ink">
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>

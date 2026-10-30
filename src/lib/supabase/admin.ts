@@ -1,14 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Service-role client for server-only, cross-user work. Right now that's
-// just the notifications cron (src/app/api/cron/notifications), which has
-// to look across every user's hearings/tasks/subscriptions on a schedule —
-// not just the one signed-in visitor a normal request has.
+// Service-role client for server-only, cross-user work: the notifications
+// cron (src/app/api/cron/notifications), which looks across every user's
+// hearings/tasks/subscriptions, and the signUp action, which writes the new
+// user's profile row before they have a session.
 //
-// This key bypasses Row Level Security entirely. Never import this file
-// from anything a request initiated by the browser can reach — only from
-// the cron route, which authorizes itself via CRON_SECRET instead of a
-// user session.
+// This key bypasses Row Level Security entirely. Never import this file from
+// client code, and never let a caller choose which user id it acts on.
 export function createSupabaseAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

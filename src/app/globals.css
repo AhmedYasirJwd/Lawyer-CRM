@@ -3,6 +3,8 @@
 :root {
   --background: #f5f5fb;
   --surface: #ffffff;
+  /* Cards nested inside a section card (dashboard lists etc.) */
+  --raised: #ffffff;
   --foreground: #14132b;
 
   /* Primary brand accent — blue, used for buttons, links, active states */
@@ -29,6 +31,12 @@
   --red-50: #fef2f2;
   --red-600: #dc2626;
 
+  --orange-50: #fff1e6;
+  --orange-600: #ea580c;
+
+  --lime-50: #f3fbe7;
+  --lime-600: #65a30d;
+
   /* True success green — decoupled from brand, used for "Active" status etc. */
   --success-50: #ecfdf3;
   --success-100: #dcfce7;
@@ -42,15 +50,138 @@
   --sidebar-active: #1e40af;
   --sidebar-active-icon: #7fa8ff;
   --sidebar-line: rgba(255, 255, 255, 0.12);
+}
 
-  /* Dashboard-only dark mode background — see theme-context.tsx. Nothing
-     else in the app reads this; every other page stays on --background. */
-  --dashboard-dark-bg: #131214;
+/* Dark mode palette — applied app-wide via a "dark" class on <html>, toggled
+   by theme-context.tsx and persisted to localStorage. Every component reads
+   colors through the semantic tokens below (bg-background, text-ink,
+   bg-surface, border-line, the tone chips, ...) rather than hardcoded
+   values, so overriding them here re-themes the whole app without touching
+   individual components. */
+:root.dark {
+  /* Built for sunlight as much as night: near-black page, clearly lifted
+     dark-grey cards, and text that stays close to pure white so it holds
+     up under glare. */
+  --background: #0b0b0e;
+  --surface: #1e1e24;
+  --raised: #2a2a32;
+  --foreground: #ffffff;
+
+  --ink: #ffffff;
+  --muted: #e4e3ee;
+  --faint: #c2c1d2;
+  --line: rgba(255, 255, 255, 0.18);
+
+  --brand-50: rgba(59, 108, 245, 0.16);
+  --brand-100: rgba(59, 108, 245, 0.26);
+  --brand-600: #3b6cf5;
+  --brand-700: #5b85f7;
+
+  --blue-50: rgba(37, 99, 235, 0.18);
+  --blue-600: #6ea8fe;
+
+  --amber-50: rgba(217, 119, 6, 0.2);
+  --amber-600: #fbbf24;
+
+  --purple-50: rgba(124, 58, 237, 0.2);
+  --purple-600: #c4b5fd;
+
+  --red-50: rgba(220, 38, 38, 0.2);
+  --red-600: #f87171;
+
+  --orange-50: rgba(234, 88, 12, 0.2);
+  --orange-600: #fb923c;
+
+  --lime-50: rgba(101, 163, 13, 0.2);
+  --lime-600: #a3e635;
+
+  --success-50: rgba(22, 163, 74, 0.16);
+  --success-100: rgba(22, 163, 74, 0.26);
+  --success-600: #4ade80;
+  --success-700: #22c55e;
+
+  color-scheme: dark;
+}
+
+/* Card text: a step-up in the small sizes (Tailwind's text-xs / text-sm read
+   these variables) in both themes, plus darker greys in light mode, so
+   secondary details inside cards stay legible on phones. Dark mode keeps
+   its own near-white greys from the :root.dark palette. */
+.card,
+.bg-surface,
+.bg-raised {
+  --ink: #0a0915;
+  --muted: #2b2a3d;
+  --faint: #45445a;
+  --text-xs: 0.875rem;
+  --text-xs--line-height: calc(1.25 / 0.875);
+  --text-sm: 1rem;
+  --text-sm--line-height: calc(1.45 / 1);
+  --text-base: 1.0625rem;
+  --text-base--line-height: calc(1.5 / 1.0625);
+}
+
+:root.dark .card,
+:root.dark .bg-surface,
+:root.dark .bg-raised {
+  --ink: #ffffff;
+  --muted: #e4e3ee;
+  --faint: #c2c1d2;
+}
+
+/* Per-case tone (see caseTone in src/lib/urgency.ts). --h is the case's hue,
+   --t how far off its next hearing is (0 = today … 1 = 30+ days). Light
+   mode: deep color when near, pale when far. Dark mode: vivid when near,
+   muted when far — same meaning, readable on a dark card. */
+.tone-card {
+  background-color: hsl(var(--h) 85% calc(88% + var(--t) * 9%));
+  border-left-color: hsl(var(--h) 70% calc(32% + var(--t) * 38%));
+}
+.tone-bar {
+  background-color: hsl(var(--h) 70% calc(32% + var(--t) * 38%));
+}
+.tone-chip {
+  background-color: hsl(var(--h) 65% calc(30% + var(--t) * 50%));
+  color: var(--tone-fg);
+}
+.tone-none.tone-card {
+  background-color: var(--raised);
+  border-left-color: var(--line);
+}
+.tone-none.tone-bar {
+  background-color: var(--line);
+}
+.tone-none.tone-chip {
+  background-color: hsl(var(--h) 70% 92%);
+  color: hsl(var(--h) 60% 30%);
+}
+:root.dark .tone-card {
+  background-color: hsl(var(--h) 40% calc(24% - var(--t) * 9%));
+  border-left-color: hsl(var(--h) 80% calc(62% - var(--t) * 22%));
+}
+:root.dark .tone-bar {
+  background-color: hsl(var(--h) 80% calc(62% - var(--t) * 22%));
+}
+:root.dark .tone-chip {
+  background-color: hsl(var(--h) 70% calc(48% - var(--t) * 20%));
+  color: #ffffff;
+}
+:root.dark .tone-none.tone-card {
+  background-color: var(--raised);
+  border-left-color: var(--line);
+}
+:root.dark .tone-none.tone-bar {
+  background-color: var(--line);
+}
+:root.dark .tone-none.tone-chip {
+  background-color: hsl(var(--h) 35% 28%);
+  color: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-raised: var(--raised);
   --color-foreground: var(--foreground);
 
   --color-brand-50: var(--brand-50);
@@ -75,6 +206,12 @@
 
   --color-red-50: var(--red-50);
   --color-red-600: var(--red-600);
+
+  --color-orange-50: var(--orange-50);
+  --color-orange-600: var(--orange-600);
+
+  --color-lime-50: var(--lime-50);
+  --color-lime-600: var(--lime-600);
 
   --color-success-50: var(--success-50);
   --color-success-100: var(--success-100);

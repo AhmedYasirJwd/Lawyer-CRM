@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { WifiOff } from "lucide-react";
 import type { Hearing, LegalCase } from "@/lib/types";
 import { saveHearing } from "@/lib/hearing-sync";
+import { WhatsAppPrompt } from "@/components/WhatsAppPrompt";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
@@ -22,6 +23,7 @@ export function HearingFormWithCaseSelect({ cases }: { cases: LegalCase[] }) {
   // Decided up front so the hearing can be saved to the device and the
   // case page can show it immediately, online or off.
   const idRef = useRef(crypto.randomUUID());
+  const [savedHearing, setSavedHearing] = useState<Hearing | null>(null);
 
   const selected = cases.find((c) => c.id === caseId);
 
@@ -57,6 +59,10 @@ export function HearingFormWithCaseSelect({ cases }: { cases: LegalCase[] }) {
     }
 
     if (!result.synced) setSavedOfflineNotice(true);
+    setSavedHearing(localHearing);
+  }
+
+  function leave() {
     // Hard navigation — see HearingForm for why (the Calendar page is
     // offline-enabled and needs a real navigation for the service worker
     // to serve it with no network).
@@ -65,6 +71,9 @@ export function HearingFormWithCaseSelect({ cases }: { cases: LegalCase[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {savedHearing && selected && (
+        <WhatsAppPrompt legalCase={selected} hearing={savedHearing} onDone={leave} />
+      )}
       {error && <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>}
       {savedOfflineNotice && (
         <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">

@@ -51,7 +51,7 @@ export function TasksExplorer() {
           // Plain <a>, not next/link — /tasks/new is offline-enabled and
           // needs a real navigation for the service worker to serve it
           // with no network.
-          // eslint-disable-next-line @next/next/no-html-link-for-pages
+           
           <a
             href="/tasks/new"
             className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"
@@ -115,7 +115,7 @@ export function TasksExplorer() {
                   </div>
                   {task.priority && !done && <PriorityBadge priority={task.priority} />}
                   {/* Plain <a>, not next/link — same reasoning as "Add Task" above. */}
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                  { }
                   <a
                     href={`/tasks/${task.id}/edit`}
                     aria-label="Edit task"

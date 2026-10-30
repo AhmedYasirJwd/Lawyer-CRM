@@ -35,7 +35,7 @@ export function NotificationPrompt() {
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-x-4 bottom-24 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-xl lg:bottom-6 lg:left-6 lg:right-auto lg:mx-0">
+    <div className="fixed inset-x-4 bottom-20 z-40 mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 shadow-xl lg:bottom-6 lg:left-6 lg:right-auto lg:mx-0">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
         <Bell size={18} />
       </div>

@@ -42,6 +42,7 @@ export function CalendarExplorer() {
 
   useEffect(() => {
     const now = new Date();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only "today" (see above); must run after hydration
     setCurrentMonth(startOfMonth(now));
     setSelectedDate(now);
   }, []);
@@ -123,7 +124,7 @@ export function CalendarExplorer() {
           // Plain <a>, not next/link — /calendar/new is offline-enabled
           // and needs a real navigation for the service worker to serve
           // it with no network.
-          // eslint-disable-next-line @next/next/no-html-link-for-pages
+           
           <a
             href="/calendar/new"
             className="flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-brand-700"

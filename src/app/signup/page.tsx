@@ -37,6 +37,23 @@ export default function SignupPage() {
             <input required type="tel" name="phone" autoComplete="tel" className={inputClass} />
           </label>
           <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted">CNIC</span>
+            <input
+              required
+              type="text"
+              name="cnic"
+              inputMode="numeric"
+              placeholder="42101-1234567-1"
+              pattern="\d{5}-?\d{7}-?\d"
+              title="13 digits, e.g. 42101-1234567-1"
+              className={inputClass}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium text-muted">Advocate code</span>
+            <input required type="text" name="advocateCode" autoCapitalize="characters" className={inputClass} />
+          </label>
+          <label className="block">
             <span className="mb-1.5 block text-xs font-medium text-muted">Email</span>
             <input required type="email" name="email" autoComplete="email" className={inputClass} />
           </label>

@@ -6,7 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 // itself checks CRON_SECRET (see src/app/api/cron/notifications/route.ts).
 const PUBLIC_PATHS = ["/login", "/signup", "/auth/callback", "/api/cron"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

@@ -38,7 +38,7 @@ export function HearingTable({
                   {/* Plain <a>, not next/link — this table appears on the
                       offline-enabled Calendar page, and case detail needs to
                       still open with no network (see CaseListItem.tsx). */}
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                  { }
                   <a href={legalCase ? `/cases/${legalCase.id}` : "#"} className="block min-w-0">
                     <span className="block truncate text-sm font-semibold text-ink group-hover:text-brand-700">
                       {legalCase ? `#${legalCase.caseNumber}` : "—"}

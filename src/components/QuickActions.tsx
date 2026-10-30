@@ -64,7 +64,7 @@ export function QuickActions({ caseId }: { caseId?: string }) {
             // create forms) are offline-enabled, and only a real navigation
             // is guaranteed to be caught by the service worker when
             // there's no network.
-            // eslint-disable-next-line @next/next/no-html-link-for-pages
+             
             <a key={action.label} href={action.href} className="rounded-xl py-1 hover:bg-background">
               {body}
             </a>

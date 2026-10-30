@@ -64,7 +64,7 @@ export function LawPdfViewer({
       loadingTaskRef.current = null;
       pdfDocRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [fileUrl]);
 
   useEffect(() => {

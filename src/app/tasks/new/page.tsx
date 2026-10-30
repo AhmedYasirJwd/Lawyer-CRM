@@ -18,7 +18,7 @@ export default function NewTaskPage() {
       <div className="mb-5">
         {/* Plain <a>, not next/link — this page is reachable offline, and
             "back to Tasks" needs to stay reachable offline too. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        { }
         <a href="/tasks" className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink">
           <ArrowLeft size={17} />
           Back to Tasks

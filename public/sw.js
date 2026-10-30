@@ -32,7 +32,7 @@
 //   - Cache documents/PDFs automatically — see the explicit "Download for
 //     offline" affordance in the Documents section instead.
 
-const VERSION = "v6";
+const VERSION = "v7";
 const STATIC_CACHE = `lexcase-static-${VERSION}`;
 const SHELL_CACHE = `lexcase-shell-${VERSION}`;
 

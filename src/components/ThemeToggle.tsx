@@ -3,9 +3,10 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 
-// Lets the user pick which of the two dashboard skyline backgrounds they see
-// — the pale daytime illustration, or the navy night skyline with the dark
-// dashboard theme. Preference is saved on this device (see theme-context.tsx).
+// Lets the user pick a light or dark look for the whole app — including
+// which of the two dashboard skyline backgrounds they see, the pale daytime
+// illustration or the navy night skyline. Preference is saved on this
+// device (see theme-context.tsx).
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
@@ -18,9 +19,7 @@ export function ThemeToggle() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-ink">Appearance</h2>
-            <p className="mt-0.5 text-sm text-muted">
-              Choose a light or dark look for your dashboard.
-            </p>
+            <p className="mt-0.5 text-sm text-muted">Choose a light or dark look for the app.</p>
           </div>
         </div>
 

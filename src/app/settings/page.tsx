@@ -2,6 +2,7 @@ import { Avatar } from "@/components/Avatar";
 import { PageHeader } from "@/components/PageHeader";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ProfileForm } from "@/components/ProfileForm";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions/auth";
 
@@ -13,6 +14,9 @@ export default async function SettingsPage() {
   const email = user?.email ?? "";
   const fullName = (user?.user_metadata?.full_name as string | undefined)?.trim();
   const displayName = fullName || email || "?";
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("cnic, advocate_code").eq("user_id", user.id).maybeSingle()
+    : { data: null };
 
   return (
     <div>
@@ -35,6 +39,8 @@ export default async function SettingsPage() {
           </button>
         </form>
       </div>
+
+      <ProfileForm cnic={profile?.cnic ?? ""} advocateCode={profile?.advocate_code ?? ""} />
 
       <ThemeToggle />
 

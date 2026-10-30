@@ -12,7 +12,7 @@ export function CaseListItem({ item }: { item: LegalCase }) {
     // is a plain fetch the service worker doesn't intercept, so it just
     // fails with no network, which is exactly what was breaking "open a
     // case" while offline.
-    // eslint-disable-next-line @next/next/no-html-link-for-pages
+     
     <a
       href={`/cases/${item.id}`}
       className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0"

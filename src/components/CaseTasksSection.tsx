@@ -38,7 +38,7 @@ export function CaseTasksSection({ caseId, initialTasks }: { caseId: string; ini
         {/* Plain <a>, not next/link — /tasks/new is offline-enabled and
             needs a real navigation for the service worker to serve it
             with no network. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+        { }
         <a
           href={`/tasks/new?caseId=${caseId}`}
           className="flex items-center gap-1 text-sm font-medium text-brand-600 hover:text-brand-700"
@@ -84,7 +84,7 @@ export function CaseTasksSection({ caseId, initialTasks }: { caseId: string; ini
                   </div>
                   {task.priority && !done && <PriorityBadge priority={task.priority} />}
                   {/* Plain <a>, not next/link — same reasoning as "Add Task" above. */}
-                  {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+                  { }
                   <a
                     href={`/tasks/${task.id}/edit`}
                     aria-label="Edit task"

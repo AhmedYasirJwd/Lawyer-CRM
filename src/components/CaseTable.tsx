@@ -1,49 +1,39 @@
-import { Landmark, Tag, CalendarClock, ChevronRight } from "lucide-react";
+import { Landmark, Tag, ChevronRight } from "lucide-react";
 import type { LegalCase, Hearing } from "@/lib/types";
-import { caseCode, formatDate, splitHearings } from "@/lib/format";
-import { StatusBadge, PriorityBadge } from "./Badge";
+import { dayNumber, formatDate, formatTime, monthShort, splitHearings } from "@/lib/format";
+import { caseTone, daysUntil } from "@/lib/urgency";
 
-const PRIORITY_BORDER: Record<string, string> = {
-  High: "border-l-red-500",
-  Medium: "border-l-amber-500",
-  Low: "border-l-blue-500",
-};
-
-// Recent Cases (dashboard) shades the priority color darker the closer its
-// next hearing is — same hue per priority, deeper as the date approaches, so
-// urgency reads at a glance without adding another badge.
-const PRIORITY_URGENCY_BORDER: Record<string, string[]> = {
-  //                far/none          8-14 days          4-7 days          1-3 days          today/overdue
-  High: ["border-l-red-300", "border-l-red-400", "border-l-red-500", "border-l-red-600", "border-l-red-700"],
-  Medium: [
-    "border-l-amber-300",
-    "border-l-amber-400",
-    "border-l-amber-500",
-    "border-l-amber-600",
-    "border-l-amber-700",
-  ],
-  Low: ["border-l-blue-300", "border-l-blue-400", "border-l-blue-500", "border-l-blue-600", "border-l-blue-700"],
-};
-
-function urgencyTier(dateIso?: string): number {
-  if (!dateIso) return 0;
-  const target = new Date(dateIso);
-  target.setHours(0, 0, 0, 0);
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const days = Math.round((target.getTime() - now.getTime()) / 86_400_000);
-  if (days <= 1) return 4;
-  if (days <= 3) return 3;
-  if (days <= 7) return 2;
-  if (days <= 14) return 1;
-  return 0;
+/** The party this lawyer represents (the one whose role matches "Counsel
+ *  For"), falling back to the first party on side 1. */
+function clientName(c: LegalCase): string {
+  const parties = c.parties ?? [];
+  const client =
+    parties.find((p) => p.role === c.counselFor) ?? parties.find((p) => p.side === 1) ?? parties[0];
+  return client?.name ?? "";
 }
 
-const PRIORITY_BAR: Record<string, string> = {
-  High: "bg-gradient-to-b from-red-400 to-red-600",
-  Medium: "bg-gradient-to-b from-amber-400 to-amber-600",
-  Low: "bg-gradient-to-b from-blue-400 to-blue-600",
-};
+/** The next hearing as a calendar-style block — the first thing a lawyer
+ *  scans a case list for. Tinted with the case's tone (see caseTone). */
+function DateBlock({ iso, className, size }: { iso?: string; className: string; size: "sm" | "lg" }) {
+  const box = size === "lg" ? "h-12 w-12 sm:h-14 sm:w-14" : "h-11 w-11";
+  return (
+    <span className={`flex ${box} shrink-0 flex-col items-center justify-center rounded-xl text-center ${className}`}>
+      {!iso ? (
+        <span className="text-[10px] font-semibold leading-tight">No<br />date</span>
+      ) : daysUntil(iso) === 0 ? (
+        <>
+          <span className="text-[10px] font-bold uppercase leading-none">Today</span>
+          <span className="mt-0.5 text-[10px] font-semibold leading-none">{formatTime(iso)}</span>
+        </>
+      ) : (
+        <>
+          <span className="text-[10px] font-bold uppercase leading-none">{monthShort(iso)}</span>
+          <span className={`${size === "lg" ? "text-lg" : "text-base"} font-bold leading-tight`}>{dayNumber(iso)}</span>
+        </>
+      )}
+    </span>
+  );
+}
 
 export function CaseTable({
   cases,
@@ -63,43 +53,33 @@ export function CaseTable({
   const full = variant === "full";
 
   if (!full) {
-    // Compact "card" style used for Recent Cases on the dashboard — colored
-    // left border by priority, packed with the same info the old table had.
+    // Compact "card" style used for Recent Cases on the dashboard: next
+    // hearing date block on the left, colored per case (hue) and by how soon
+    // (depth). Three lines: number + client, title, court + last hearing.
     return (
       <div className="space-y-2.5">
         {cases.map((c) => {
-          const code = caseCode(c.caseType);
           const { last, next } = splitHearings(hearingsByCaseId?.get(c.id));
-          const tier = urgencyTier(next?.date);
-          const borderClass = PRIORITY_URGENCY_BORDER[c.priority]?.[tier] ?? PRIORITY_BORDER[c.priority] ?? "border-l-line";
+          const tone = caseTone(c.id, next?.date);
+          const client = clientName(c);
           return (
             <a
               key={c.id}
               href={`/cases/${c.id}`}
-              className={`flex items-start gap-3 rounded-xl border-l-4 bg-background/60 p-3.5 transition-colors hover:bg-background ${borderClass}`}
+              style={tone.vars}
+              className={`flex items-start gap-3 rounded-xl border border-l-4 border-line p-3 transition-[filter] hover:brightness-95 ${tone.card}`}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[11px] font-bold text-brand-700">
-                {code}
-              </span>
+              <DateBlock iso={next?.date} className={tone.chip} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
-                  <span className="truncate text-sm font-semibold text-ink">#{c.caseNumber}</span>
-                  <StatusBadge status={c.status} />
+                <span className="flex items-center justify-between gap-2">
+                  <span className="shrink-0 text-sm font-semibold text-ink">#{c.caseNumber}</span>
+                  {client && <span className="truncate text-xs font-medium text-brand-700">{client}</span>}
                 </span>
                 <span className="block truncate text-xs text-muted">{c.title}</span>
-                <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-faint">
-                  <span>{c.court}</span>
-                  <span>{c.caseType}</span>
-                  <span>{c.stage}</span>
-                </span>
-                <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                  <span className="text-muted">
-                    Next: <span className="font-medium text-ink">{next ? formatDate(next.date) : "—"}</span>
-                  </span>
-                  <span className="text-faint">
-                    Last: {last ? formatDate(last.date) : "—"}
-                  </span>
-                  <PriorityBadge priority={c.priority} />
+                {/* One line, always: the court name truncates first. */}
+                <span className="mt-1 flex items-center gap-3 whitespace-nowrap text-xs">
+                  <span className="min-w-0 truncate text-faint">{c.court}</span>
+                  {last && <span className="shrink-0 text-faint">Last: {formatDate(last.date)}</span>}
                 </span>
               </span>
             </a>
@@ -110,32 +90,28 @@ export function CaseTable({
   }
 
   // Full list — used on the Cases page. A stack of richer cards (not a
-  // table) so it reads well on mobile without horizontal scrolling, with a
-  // solid priority-colored bar down the left edge of every card.
+  // table) so it reads well on mobile without horizontal scrolling, led by
+  // the next-hearing date block and tinted with the same per-case tone as
+  // the dashboard.
   return (
     <div className="space-y-3">
       {cases.map((c) => {
-        const code = caseCode(c.caseType);
         const { next } = splitHearings(hearingsByCaseId?.get(c.id));
+        const tone = caseTone(c.id, next?.date);
         return (
           <a
             key={c.id}
             href={`/cases/${c.id}`}
-            className="group relative flex items-start gap-3.5 overflow-hidden rounded-2xl border border-line bg-surface p-4 pl-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md sm:items-center sm:gap-4 sm:p-4 sm:pl-6"
+            style={tone.vars}
+            className={`group relative flex items-start gap-3.5 overflow-hidden rounded-2xl border border-line p-4 pl-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md sm:items-center sm:gap-4 sm:p-4 sm:pl-6 ${tone.card}`}
           >
-            <span aria-hidden className={`absolute inset-y-0 left-0 w-1.5 ${PRIORITY_BAR[c.priority] ?? "bg-line"}`} />
+            <span aria-hidden className={`absolute inset-y-0 left-0 w-1.5 ${tone.bar}`} />
 
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-[12px] font-bold text-brand-700 sm:h-12 sm:w-12">
-              {code}
-            </span>
+            <DateBlock iso={next?.date} className={tone.chip} size="lg" />
 
             <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="truncate text-sm font-semibold text-ink group-hover:text-brand-700 sm:text-base">
-                  #{c.caseNumber}
-                </span>
-                <StatusBadge status={c.status} />
-                <PriorityBadge priority={c.priority} />
+              <span className="block truncate text-sm font-semibold text-ink group-hover:text-brand-700 sm:text-base">
+                #{c.caseNumber}
               </span>
               <span className="mt-0.5 block truncate text-sm text-muted">{c.title}</span>
 
@@ -151,11 +127,6 @@ export function CaseTable({
                 <span>{c.stage}</span>
               </span>
 
-              <span className="mt-2 flex items-center gap-1.5 text-xs">
-                <CalendarClock size={13} className="text-faint" />
-                <span className="text-muted">Next hearing:</span>
-                <span className="font-semibold text-ink">{next ? formatDate(next.date) : "—"}</span>
-              </span>
             </span>
 
             <ChevronRight

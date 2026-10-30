@@ -86,6 +86,7 @@ export function useOfflineCollection<T extends { id: string }>(
 
   useEffect(() => {
     mounted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from IndexedDB/network on mount
     load();
     const onReconnect = () => load();
     // A save, or the outbox draining, both write straight to IndexedDB —
@@ -208,6 +209,7 @@ export function useOfflineCaseDetail(caseId: string): CaseDetailState & { refres
 
   useEffect(() => {
     mounted.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from IndexedDB/network on mount
     load();
     const onReconnect = () => load();
     // If a background outbox sync updates this exact case while its detail

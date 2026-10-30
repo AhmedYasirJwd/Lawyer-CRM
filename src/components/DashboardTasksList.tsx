@@ -38,7 +38,7 @@ export function DashboardTasksList({
           <a
             key={t.id}
             href={t.caseId ? `/cases/${t.caseId}` : "/tasks"}
-            className="flex items-center justify-between gap-3 rounded-xl bg-background/60 px-3.5 py-2.5 transition-colors hover:bg-background"
+            className="flex items-center justify-between gap-3 rounded-xl border border-line bg-raised px-3.5 py-2.5 transition-colors hover:bg-brand-50"
           >
             <span className="min-w-0 truncate text-sm font-medium text-ink">{t.title}</span>
             <span

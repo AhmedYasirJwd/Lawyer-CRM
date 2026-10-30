@@ -12,10 +12,14 @@ import type { LegalCase, Hearing, Task, DashboardStats, CaseDocument, Party, Tim
 function mapParty(row: any): Party {
   return {
     id: row.id,
+    side: (row.side ?? 1) as Party["side"],
     name: row.name,
     role: row.role,
     phone: row.phone ?? undefined,
-    email: row.email ?? undefined,
+    cnic: row.cnic ?? undefined,
+    address: row.address ?? undefined,
+    relationType: row.relation_type ?? undefined,
+    relationName: row.relation_name ?? undefined,
   };
 }
 
@@ -158,10 +162,14 @@ export async function createCase(
         user_id: userId,
         case_id: caseId,
         position: i,
+        side: p.side ?? 1,
         name: p.name,
         role: p.role,
         phone: p.phone || null,
-        email: p.email || null,
+        cnic: p.cnic || null,
+        address: p.address || null,
+        relation_type: p.relationType || null,
+        relation_name: p.relationName || null,
       }))
     );
     if (partyErr) throw partyErr;
@@ -219,10 +227,14 @@ export async function updateCase(id: string, patch: Partial<LegalCase>): Promise
           user_id: userId,
           case_id: id,
           position: i,
+          side: p.side ?? 1,
           name: p.name,
           role: p.role,
           phone: p.phone || null,
-          email: p.email || null,
+          cnic: p.cnic || null,
+          address: p.address || null,
+          relation_type: p.relationType || null,
+          relation_name: p.relationName || null,
         }))
       );
       if (insErr) throw insErr;

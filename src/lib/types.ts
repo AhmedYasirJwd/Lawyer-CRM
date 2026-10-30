@@ -109,12 +109,24 @@ export const CASE_ROLES: string[] = [
   "Department / Authority",
 ];
 
+// Which side of the case a party is on. Multiple parties can share a side
+// (e.g. two co-plaintiffs suing one defendant) — the form groups people
+// under "Party 1" / "Party 2" by this, rather than by list position.
+export type PartySide = 1 | 2;
+
+export const RELATION_TYPES = ["Son of", "Wife of", "Daughter of"] as const;
+export type RelationType = (typeof RELATION_TYPES)[number];
+
 export interface Party {
   id: string;
+  side: PartySide;
   name: string;
   role: string;
   phone?: string;
-  email?: string;
+  cnic?: string;
+  address?: string;
+  relationType?: RelationType;
+  relationName?: string;
 }
 
 export type TimelineEventType =

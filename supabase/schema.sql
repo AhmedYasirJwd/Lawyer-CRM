@@ -26,10 +26,17 @@ create table if not exists public.parties (
   user_id uuid not null references auth.users(id) on delete cascade,
   case_id uuid not null references public.cases(id) on delete cascade,
   position int not null default 0,
+  -- Which side of the case this party is on. Multiple rows can share a
+  -- side (e.g. two co-plaintiffs), so the app groups by this rather than
+  -- by row position — position is still used to order people within a side.
+  side smallint not null default 1,
   name text not null,
   role text not null,
   phone text,
-  email text
+  cnic text,
+  address text,
+  relation_type text, -- 'Son of' | 'Wife of' | 'Daughter of'
+  relation_name text
 );
 
 create table if not exists public.timeline_events (
@@ -186,3 +193,36 @@ create policy "own push_subscriptions" on public.push_subscriptions for all
 alter table public.hearings add column if not exists reminder_24h_sent_at timestamptz;
 alter table public.hearings add column if not exists reminder_1h_sent_at timestamptz;
 alter table public.tasks add column if not exists reminder_sent_at timestamptz;
+
+-- Party detail fields: CNIC, address, and S/O-W/O-D/O parentage, plus the
+-- "side" grouping that lets more than one party sit on the same side of a
+-- case (e.g. two co-plaintiffs). The old "email" column is left in place
+-- (unused by the app now) rather than dropped, so existing data isn't lost.
+alter table public.parties add column if not exists side smallint not null default 1;
+alter table public.parties add column if not exists cnic text;
+alter table public.parties add column if not exists address text;
+alter table public.parties add column if not exists relation_type text;
+alter table public.parties add column if not exists relation_name text;
+
+-- ---------------------------------------------------------------- profiles --
+-- One row per lawyer: the CNIC + advocate code CFMS (court case-flow system)
+-- lookups need. Created by the signUp action, editable from Settings. Not in
+-- auth user_metadata on purpose — metadata is embedded in every session JWT.
+-- A CNIC can belong to only one account, so nobody can register someone
+-- else's CNIC to pull their cause list.
+
+create table if not exists public.profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  cnic text not null,
+  advocate_code text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists profiles_cnic_key on public.profiles (cnic);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "own profiles" on public.profiles;
+create policy "own profiles" on public.profiles for all
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);

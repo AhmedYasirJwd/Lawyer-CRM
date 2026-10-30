@@ -6,6 +6,7 @@ import { Trash2, WifiOff } from "lucide-react";
 import type { Hearing, LegalCase } from "@/lib/types";
 import { saveHearing } from "@/lib/hearing-sync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { WhatsAppPrompt } from "@/components/WhatsAppPrompt";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
@@ -18,6 +19,7 @@ export function HearingForm({ legalCase, initial }: { legalCase: LegalCase; init
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedOfflineNotice, setSavedOfflineNotice] = useState(false);
+  const [savedHearing, setSavedHearing] = useState<Hearing | null>(null);
 
   // A create's id is decided up front (not by the server) so the hearing
   // can be saved to the device and the case page can show it immediately,
@@ -62,6 +64,11 @@ export function HearingForm({ legalCase, initial }: { legalCase: LegalCase; init
     }
 
     if (!result.synced) setSavedOfflineNotice(true);
+    // Offer to WhatsApp the date to the client before leaving the form.
+    setSavedHearing(localHearing);
+  }
+
+  function leave() {
     // Hard navigation, not router.push: the case detail page is one of the
     // offline-enabled routes (see public/sw.js), and only a real navigation
     // is guaranteed to be caught by the service worker when there's no
@@ -88,6 +95,7 @@ export function HearingForm({ legalCase, initial }: { legalCase: LegalCase; init
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {savedHearing && <WhatsAppPrompt legalCase={legalCase} hearing={savedHearing} onDone={leave} />}
       {error && <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">{error}</p>}
       {savedOfflineNotice && (
         <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-2.5 text-sm text-amber-700">

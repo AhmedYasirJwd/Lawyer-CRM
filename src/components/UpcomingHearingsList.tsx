@@ -1,20 +1,10 @@
 import { ChevronRight, MapPin } from "lucide-react";
 import type { Hearing, LegalCase } from "@/lib/types";
 import { dayNumber, formatDate, formatTime, monthShort, splitHearings } from "@/lib/format";
-
-// Rotating accent palette so consecutive hearings read as visually distinct,
-// same idea as the colored left-bars in the reference design.
-const ACCENTS = [
-  { border: "border-l-blue-600", chip: "bg-blue-50 text-blue-600" },
-  { border: "border-l-purple-600", chip: "bg-purple-50 text-purple-600" },
-  { border: "border-l-amber-600", chip: "bg-amber-50 text-amber-600" },
-  { border: "border-l-success-600", chip: "bg-success-100 text-success-700" },
-];
+import { caseTone, daysUntil } from "@/lib/urgency";
 
 function isToday(iso: string): boolean {
-  const d = new Date(iso);
-  const n = new Date();
-  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+  return daysUntil(iso) === 0;
 }
 
 export function UpcomingHearingsList({
@@ -34,8 +24,8 @@ export function UpcomingHearingsList({
 
   return (
     <div className="space-y-2.5">
-      {hearings.map((h, i) => {
-        const accent = ACCENTS[i % ACCENTS.length];
+      {hearings.map((h) => {
+        const tone = caseTone(h.caseId, h.date);
         const c = casesById.get(h.caseId);
         const today = isToday(h.date);
         const { last } = splitHearings(hearingsByCaseId?.get(h.caseId));
@@ -44,10 +34,11 @@ export function UpcomingHearingsList({
           <a
             key={h.id}
             href={c ? `/cases/${c.id}` : "/calendar"}
-            className={`flex items-start gap-3 rounded-xl border-l-4 bg-background/60 p-3.5 transition-colors hover:bg-background ${accent.border}`}
+            style={tone.vars}
+            className={`flex items-start gap-3 rounded-xl border border-l-4 border-line p-3.5 transition-[filter] hover:brightness-95 ${tone.card}`}
           >
             <div
-              className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-center ${accent.chip}`}
+              className={`flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-center ${tone.chip}`}
             >
               {today ? (
                 <span className="text-[11px] font-bold leading-tight">{formatTime(h.date)}</span>
@@ -65,7 +56,7 @@ export function UpcomingHearingsList({
                   {c ? `${c.caseType} No. ${c.caseNumber}` : h.purpose}
                 </p>
                 {today && (
-                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${accent.chip}`}>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${tone.chip}`}>
                     {formatTime(h.date)}
                   </span>
                 )}
@@ -78,8 +69,8 @@ export function UpcomingHearingsList({
                   <MapPin size={13} className="text-faint" />
                   {c?.court ?? h.court}
                 </span>
-                {!today && <span className="text-[11px] text-faint">{formatDate(h.date)}</span>}
-                {last && <span className="text-[11px] text-faint">Last hearing: {formatDate(last.date)}</span>}
+                {!today && <span className="text-xs text-faint">{formatDate(h.date)}</span>}
+                {last && <span className="text-xs text-faint">Last hearing: {formatDate(last.date)}</span>}
               </div>
             </div>
 
