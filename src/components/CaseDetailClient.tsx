@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ArrowLeft, Pencil, ChevronRight, FolderX } from "lucide-react";
-import { formatDate, formatTime, caseCode } from "@/lib/format";
+import { formatDate, formatTime } from "@/lib/format";
 import { StatusBadge } from "@/components/Badge";
 import { SectionCard } from "@/components/SectionCard";
 import { QuickActions } from "@/components/QuickActions";
@@ -14,6 +14,10 @@ import { EndCaseButton } from "@/components/EndCaseButton";
 import { CaseTasksSection } from "@/components/CaseTasksSection";
 import { useOfflineCaseDetail } from "@/hooks/useOfflineData";
 import type { TimelineEvent } from "@/lib/types";
+import { DeleteCaseButton } from "@/components/DeleteCaseButton";
+import { CourtRecordSection } from "@/components/CourtRecordSection";
+import { DateBlock } from "@/components/CaseTable";
+import { caseTone, tint } from "@/lib/urgency";
 
 export function CaseDetailClient({ caseId }: { caseId: string }) {
   const { legalCase: item, hearings, tasks, documents, loading, notCached, isOffline } =
@@ -81,8 +85,12 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   }));
   const combinedTimeline = [...item.timeline, ...hearingTimelineEvents];
 
+  const tone = caseTone(item.id, nextHearing?.date);
+
   return (
-    <div>
+    // The whole page takes this case's own color: section header bands,
+    // info tiles and the header card (see .case-accent in globals.css).
+    <div style={tint(item.id)} className="case-accent">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- intentional: forces a real navigation so the service worker can serve the offline shell */}
         <a href="/cases" className="flex items-center gap-1.5 text-sm font-medium text-muted hover:text-ink">
@@ -92,6 +100,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
         <h1 className="hidden text-base font-semibold text-ink sm:block">Case Details</h1>
         <div className="flex items-center gap-2">
           <EndCaseButton caseId={item.id} status={item.status} />
+          <DeleteCaseButton caseId={item.id} caseLabel={`case #${item.caseNumber}`} />
           { }
           <a
             href={`/cases/${item.id}/edit`}
@@ -103,11 +112,12 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
         </div>
       </div>
 
-      <div className="card mb-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <div
+        style={tone.vars}
+        className={`card mb-4 flex flex-col gap-4 border-l-4 p-5 sm:flex-row sm:items-center sm:justify-between ${tone.card}`}
+      >
         <div className="flex items-center gap-3.5">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
-            {caseCode(item.caseType)}
-          </div>
+          <DateBlock iso={nextHearing?.date} className={tone.chip} size="lg" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-bold text-ink">
@@ -123,11 +133,11 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
         {nextHearing && (
           <a
             href="/calendar"
-            className="flex shrink-0 items-center gap-3 rounded-xl border border-line bg-background px-4 py-3 sm:min-w-[220px]"
+            className="tint flex shrink-0 items-center gap-3 rounded-xl border bg-white px-4 py-3 sm:min-w-[220px]"
           >
             <div className="min-w-0 flex-1">
               <p className="text-xs text-muted">Next Hearing</p>
-              <p className="text-sm font-semibold text-blue-600">{formatDate(nextHearing.date)}</p>
+              <p className="text-sm font-semibold text-ink">{formatDate(nextHearing.date)}</p>
               <p className="text-xs text-muted">{formatTime(nextHearing.date)}</p>
               <p className="mt-0.5 truncate text-xs text-faint">{item.counselFor}</p>
             </div>
@@ -147,6 +157,10 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
 
         <SectionCard title="Parties" collapsible defaultOpen>
           <PartiesSection parties={item.parties} />
+        </SectionCard>
+
+        <SectionCard title="Court Record" collapsible defaultOpen>
+          <CourtRecordSection item={item} />
         </SectionCard>
 
         <SectionCard title="Case Timeline">

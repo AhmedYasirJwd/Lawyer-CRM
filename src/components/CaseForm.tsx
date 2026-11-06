@@ -1,13 +1,23 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, AlertCircle, WifiOff } from "lucide-react";
+import { Plus, Trash2, AlertCircle, WifiOff, Search, CheckCircle2 } from "lucide-react";
 import type { CaseStatus, LegalCase, Priority, PartySide, RelationType } from "@/lib/types";
 import { CASE_ROLES, CASE_TYPES, CASE_STAGES, RELATION_TYPES } from "@/lib/types";
 import { Autocomplete } from "./Autocomplete";
 import { KARACHI_COURTS } from "@/lib/karachi-courts";
 import { saveCase } from "@/lib/case-sync";
+import { tint } from "@/lib/urgency";
+import {
+  DISTRICTS,
+  caseNumberLabel,
+  cfmsDistrictValue,
+  parseParties,
+  referenceOf,
+  validateCaseReference,
+} from "@/lib/cfms-parse";
+import { CourtSearchPicker, type LinkedCourtCase } from "./CourtSearchPicker";
 
 const STATUSES: CaseStatus[] = ["Active", "Pending", "Closed", "Disposed"];
 const PRIORITIES: Priority[] = ["High", "Medium", "Low"];
@@ -116,7 +126,15 @@ function Field({
   );
 }
 
-const REQUIRED_FIELD_ORDER: Array<keyof FieldErrors> = ["caseNumber", "title", "court", "filingDate"];
+const REQUIRED_FIELD_ORDER: Array<keyof FieldErrors> = [
+  "district",
+  "reference",
+  "caseYear",
+  "firYear",
+  "title",
+  "court",
+  "filingDate",
+];
 
 /** Jumps to and focuses the first invalid required field, so the person
  *  never has to hunt for what's blocking save — the page does it for them. */
@@ -149,20 +167,36 @@ function emptyParty(side: PartySide, role: string = "Other"): PartyDraft {
 }
 
 interface FieldErrors {
-  caseNumber?: string;
+  district?: string;
+  reference?: string;
+  caseYear?: string;
+  firYear?: string;
   title?: string;
   court?: string;
   filingDate?: string;
 }
 
 function validateForm(form: {
-  caseNumber: string;
+  district: string;
+  caseNo: string;
+  caseYear: string;
+  firNo: string;
+  firYear: string;
   title: string;
   court: string;
   filingDate: string;
 }): FieldErrors {
   const errors: FieldErrors = {};
-  if (!form.caseNumber.trim()) errors.caseNumber = "Case number is required.";
+  if (!form.district) errors.district = "Choose a district.";
+  Object.assign(
+    errors,
+    validateCaseReference({
+      caseNo: form.caseNo.trim(),
+      caseYear: form.caseYear.trim(),
+      firNo: form.firNo.trim(),
+      firYear: form.firYear.trim(),
+    })
+  );
   if (!form.title.trim()) errors.title = "Case title is required.";
   if (!form.court.trim()) errors.court = "Court is required.";
   if (!form.filingDate) {
@@ -186,6 +220,211 @@ function validateParty(p: PartyDraft): { phone?: string; cnic?: string } {
   return errors;
 }
 
+/** District, case no/year and FIR no/year: what the case is known by at court,
+ *  and what the search on the court website runs on. */
+function CourtReferenceCard({
+  form,
+  errors,
+  onChange,
+  onPoliceStation,
+  onBlurReference,
+  linked,
+  onUnlink,
+  canSearch,
+  onSearch,
+}: {
+  form: {
+    district: string;
+    caseNo: string;
+    caseYear: string;
+    firNo: string;
+    firYear: string;
+    policeStation: string;
+  };
+  errors: { district?: string; reference?: string; caseYear?: string; firYear?: string };
+  onChange: (key: "district" | "caseNo" | "caseYear" | "firNo" | "firYear", value: string) => void;
+  onPoliceStation: (code: string, name: string) => void;
+  onBlurReference: () => void;
+  linked: LinkedCourtCase | null;
+  onUnlink: () => void;
+  canSearch: boolean;
+  onSearch: () => void;
+}) {
+  const onCourtSite = cfmsDistrictValue(form.district) !== null;
+  const usingFir = Boolean(form.firNo.trim() || form.firYear.trim());
+
+  return (
+    <div className="card space-y-4 p-5">
+      <h2 className="section-head text-sm font-semibold text-ink">Court Reference</h2>
+
+      <Field label="District" name="district" error={errors.district}>
+        <select
+          className={errors.district ? inputErrorClass : inputClass}
+          value={form.district}
+          onChange={(e) => onChange("district", e.target.value)}
+        >
+          <option value="">Choose a district…</option>
+          {DISTRICTS.map((d) => (
+            <option key={d.key} value={d.key}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      <div data-field="reference" className="space-y-3">
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Case No">
+            <input
+              inputMode="numeric"
+              className={inputClass}
+              placeholder="e.g. 123"
+              value={form.caseNo}
+              onChange={(e) => onChange("caseNo", e.target.value)}
+              onBlur={onBlurReference}
+            />
+          </Field>
+          <Field label="Case Year" name="caseYear" error={errors.caseYear}>
+            <input
+              inputMode="numeric"
+              maxLength={4}
+              className={errors.caseYear ? inputErrorClass : inputClass}
+              placeholder="e.g. 2025"
+              value={form.caseYear}
+              onChange={(e) => onChange("caseYear", e.target.value)}
+              onBlur={onBlurReference}
+            />
+          </Field>
+        </div>
+
+        <p className="text-center text-xs font-medium uppercase tracking-wide text-faint">or</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="FIR No">
+            <input
+              inputMode="numeric"
+              className={inputClass}
+              placeholder="e.g. 386"
+              value={form.firNo}
+              onChange={(e) => onChange("firNo", e.target.value)}
+              onBlur={onBlurReference}
+            />
+          </Field>
+          <Field label="FIR Year" name="firYear" error={errors.firYear}>
+            <input
+              inputMode="numeric"
+              maxLength={4}
+              className={errors.firYear ? inputErrorClass : inputClass}
+              placeholder="e.g. 2025"
+              value={form.firYear}
+              onChange={(e) => onChange("firYear", e.target.value)}
+              onBlur={onBlurReference}
+            />
+          </Field>
+        </div>
+
+        {errors.reference && (
+          <p className="flex items-center gap-1 text-xs text-red-600">
+            <AlertCircle size={12} />
+            {errors.reference}
+          </p>
+        )}
+      </div>
+
+      {onCourtSite && usingFir && (
+        <PoliceStationField
+          district={form.district}
+          value={form.policeStation}
+          onChange={onPoliceStation}
+        />
+      )}
+
+      {form.district && !onCourtSite && (
+        <p className="rounded-xl bg-background px-3.5 py-2.5 text-sm text-muted">
+          High Court cases aren&apos;t on the district courts website, so they can&apos;t be searched or
+          updated automatically. Add their hearings by hand.
+        </p>
+      )}
+
+      {linked ? (
+        <div className="flex items-start gap-2.5 rounded-xl bg-success-50 px-3.5 py-2.5 text-sm text-success-700">
+          <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Linked to the court record</p>
+            <p className="text-xs">Hearings update automatically every night.</p>
+          </div>
+          <button type="button" onClick={onUnlink} className="shrink-0 text-xs font-semibold underline underline-offset-2">
+            Unlink
+          </button>
+        </div>
+      ) : (
+        onCourtSite && (
+          <button
+            type="button"
+            onClick={onSearch}
+            disabled={!canSearch}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 py-2.5 text-sm font-semibold text-brand-600 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Search size={15} />
+            Search court records
+          </button>
+        )
+      )}
+    </div>
+  );
+}
+
+function PoliceStationField({
+  district,
+  value,
+  onChange,
+}: {
+  district: string;
+  value: string;
+  onChange: (code: string, name: string) => void;
+}) {
+  const [loaded, setLoaded] = useState<{ district: string; stations: { code: string; name: string }[] } | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/cfms/police-stations?district=${encodeURIComponent(district)}`)
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
+      .then((body) => {
+        if (!cancelled) setLoaded({ district, stations: body.stations });
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [district]);
+
+  const stations = loaded?.district === district ? loaded.stations : null;
+
+  return (
+    <Field label="Police Station">
+      <select
+        className={inputClass}
+        value={value}
+        disabled={!stations}
+        onChange={(e) => onChange(e.target.value, e.target.selectedOptions[0]?.text ?? "")}
+      >
+        <option value="">
+          {stations ? "Choose a police station…" : failed ? "Couldn't load police stations" : "Loading…"}
+        </option>
+        {stations?.map((s) => (
+          <option key={s.code} value={s.code}>
+            {s.name}
+          </option>
+        ))}
+      </select>
+      <span className="mt-1 block text-xs text-faint">The court website needs this to search by FIR.</span>
+    </Field>
+  );
+}
+
 export function CaseForm({ initial }: { initial?: LegalCase }) {
   const router = useRouter();
   const isEdit = Boolean(initial);
@@ -198,10 +437,13 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
   // A create's id is decided up front (not by the server) so the case can
   // be saved to the device and opened immediately, online or off — see
   // src/lib/case-sync.ts.
-  const idRef = useRef(initial?.id ?? crypto.randomUUID());
+  const [caseId] = useState(() => initial?.id ?? crypto.randomUUID());
 
   const [formState, setForm] = useState({
-    caseNumber: initial?.caseNumber ?? "",
+    district: initial?.district ?? "",
+    ...(initial ? referenceOf(initial) : { caseNo: "", caseYear: "", firNo: "", firYear: "" }),
+    policeStation: initial?.policeStation ?? "",
+    policeStationName: initial?.policeStationName ?? "",
     title: initial?.title ?? "",
     court: initial?.court ?? "",
     filingDate: initial?.filingDate ?? new Date().toISOString().slice(0, 10),
@@ -228,6 +470,15 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       : [emptyParty(1, "Plaintiff"), emptyParty(2, "Defendant")]
   );
   const [partyTouched, setPartyTouched] = useState<Record<string, { phone?: boolean; cnic?: boolean }>>({});
+
+  // The court record this case is linked to, if any.
+  const [linked, setLinked] = useState<LinkedCourtCase | null>(
+    initial?.cfmsCaseCode ? { caseCode: initial.cfmsCaseCode, status: initial.cfmsStatus ?? "" } : null
+  );
+  // Opens the search over the form. "saving" means it was opened by Save, so it
+  // offers to save without linking; set again once that's been answered.
+  const [picker, setPicker] = useState<"search" | "saving" | null>(null);
+  const [saveWithoutLink, setSaveWithoutLink] = useState(false);
 
   // The case title auto-fills as "{Party 1 side} vs {Party 2 side}" (each
   // side's names joined with "&" when more than one person is on it) while
@@ -286,6 +537,58 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  // What identifies the case changed, so any link is to a different case now.
+  function setReference<K extends "district" | "caseNo" | "caseYear" | "firNo" | "firYear" | "policeStation">(
+    key: K,
+    value: string
+  ) {
+    set(key, value);
+    setLinked(null);
+    setSaveWithoutLink(false);
+  }
+
+  const onCourtSite = cfmsDistrictValue(form.district) !== null;
+  const hasCaseNumber = Boolean(form.caseNo.trim() && form.caseYear.trim());
+  const hasFir = Boolean(form.firNo.trim() && form.firYear.trim());
+  const canSearch = onCourtSite && (hasCaseNumber || (hasFir && Boolean(form.policeStation)));
+
+  /** Fills the form from the court record the person picked. Anything they've
+   *  typed into parties is kept; the record only fills what's still empty. */
+  function applyCourtCase(picked: LinkedCourtCase) {
+    setLinked(picked);
+    setPicker(null);
+    if (!picked.heading) return;
+    const { heading, court, institutedOn, disposed, counselSide } = picked;
+
+    const found = parseParties(heading.title);
+    const hasParties = parties.some((p) => p.name.trim());
+    if (!hasParties && found.length > 0) {
+      setParties(
+        found.map((p) => ({
+          ...emptyParty(p.side, p.role),
+          name: p.name,
+          relationType: p.relationType ?? "",
+          relationName: p.relationName ?? "",
+        }))
+      );
+    }
+    const counselRole = found.find((p) => p.side === counselSide)?.role;
+
+    setTitleTouched(true);
+    setForm((f) => ({
+      ...f,
+      caseNo: f.caseNo || heading.caseNo,
+      caseYear: f.caseYear || heading.caseYear,
+      title: heading.title || f.title,
+      court: court || f.court,
+      caseType: heading.caseType || f.caseType,
+      filingDate: institutedOn ?? f.filingDate,
+      counselFor: counselRole ?? f.counselFor,
+      stage: f.stage === STAGES[0] ? "Filed / Institution" : f.stage,
+      status: disposed ? "Disposed" : f.status,
+    }));
+  }
+
   // Preserve a legacy counsel-for value (e.g. an old judge's name) as a selectable
   // option if it doesn't match the current role list, so editing an old case
   // doesn't silently overwrite it.
@@ -320,6 +623,18 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       return;
     }
 
+    // A case that could be on the court site gets looked up before it's saved,
+    // so it can be linked and update itself from then on.
+    if (canSearch && !linked && !saveWithoutLink && navigator.onLine) {
+      setPicker("saving");
+      return;
+    }
+
+    await saveForm();
+  }
+
+  async function saveForm() {
+    setError(null);
     setSubmitting(true);
 
     const partiesPayload = parties
@@ -336,9 +651,22 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
         relationName: p.relationName.trim() || undefined,
       }));
 
+    const reference = {
+      caseNo: form.caseNo.trim(),
+      caseYear: form.caseYear.trim(),
+      firNo: form.firNo.trim(),
+      firYear: form.firYear.trim(),
+    };
     const payload = {
-      id: idRef.current,
-      caseNumber: form.caseNumber.trim(),
+      id: caseId,
+      caseNumber: caseNumberLabel(reference),
+      district: form.district,
+      ...reference,
+      // Only an FIR search uses these, and only for a court-site district.
+      policeStation: onCourtSite ? form.policeStation : "",
+      policeStationName: onCourtSite ? form.policeStationName : "",
+      cfmsCaseCode: linked?.caseCode ?? "",
+      cfmsStatus: linked?.status ?? "",
       title: form.title.trim(),
       court: form.court.trim(),
       filingDate: form.filingDate,
@@ -351,7 +679,7 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     };
 
     const localCase: LegalCase = {
-      id: idRef.current,
+      id: caseId,
       caseNumber: payload.caseNumber,
       title: payload.title,
       court: payload.court,
@@ -363,6 +691,17 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       priority: payload.priority,
       lastUpdated: new Date().toISOString(),
       parties: partiesPayload,
+      district: payload.district,
+      caseNo: reference.caseNo || undefined,
+      caseYear: reference.caseYear || undefined,
+      firNo: reference.firNo || undefined,
+      firYear: reference.firYear || undefined,
+      policeStation: payload.policeStation || undefined,
+      policeStationName: payload.policeStationName || undefined,
+      cfmsCaseCode: linked?.caseCode,
+      cfmsStatus: linked?.status,
+      cfmsRecord: initial?.cfmsRecord,
+      cfmsSyncedAt: initial?.cfmsSyncedAt,
       timeline: initial?.timeline ?? [
         {
           id: crypto.randomUUID(),
@@ -384,6 +723,13 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     }
 
     if (!result.synced) setSavedOfflineNotice(true);
+
+    // Bring in the hearings now rather than waiting for tonight's update. Not
+    // worth failing the save over: the nightly update covers it either way.
+    if (result.synced && linked) {
+      await fetch(`/api/cfms/sync/${caseId}`, { method: "POST" }).catch(() => undefined);
+    }
+
     // Hard navigation, not router.push: the case detail page is one of the
     // offline-enabled routes (see public/sw.js), and only a real navigation
     // is guaranteed to be caught by the service worker when there's no
@@ -391,11 +737,13 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     // request the service worker doesn't intercept, so right after saving
     // offline it could fail silently and strand the person on the form —
     // even though the case itself was already saved to the device.
-    window.location.href = `/cases/${idRef.current}`;
+    window.location.href = `/cases/${caseId}`;
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    // Tinted with this case's own color (same hue as its cards elsewhere). A new
+    // case uses a fixed key: its random id differs between server and client render.
+    <form onSubmit={handleSubmit} noValidate style={tint(initial?.id ?? "new-case")} className="case-accent space-y-5">
       {error && (
         <p className="flex items-start gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
@@ -426,19 +774,50 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
         </p>
       )}
 
+      {picker && (
+        <CourtSearchPicker
+          query={{
+            district: form.district,
+            caseNo: form.caseNo.trim(),
+            caseYear: form.caseYear.trim(),
+            firNo: form.firNo.trim(),
+            firYear: form.firYear.trim(),
+            policeStation: form.policeStation,
+          }}
+          whileSaving={picker === "saving"}
+          onPick={applyCourtCase}
+          onClose={() => setPicker(null)}
+          onSaveWithoutLink={() => {
+            setPicker(null);
+            setSaveWithoutLink(true);
+            void saveForm();
+          }}
+        />
+      )}
+
+      <CourtReferenceCard
+        form={form}
+        errors={{
+          district: shown("district"),
+          reference: attemptedSubmit || touched.reference ? fieldErrors.reference : undefined,
+          caseYear: shown("caseYear"),
+          firYear: shown("firYear"),
+        }}
+        onChange={setReference}
+        onPoliceStation={(code, name) => {
+          setReference("policeStation", code);
+          set("policeStationName", name);
+        }}
+        onBlurReference={() => setTouched((t) => ({ ...t, reference: true }))}
+        linked={linked}
+        onUnlink={() => setLinked(null)}
+        canSearch={canSearch}
+        onSearch={() => setPicker("search")}
+      />
+
       <div className="card space-y-4 p-5">
-        <h2 className="text-sm font-semibold text-ink">Case Details</h2>
+        <h2 className="section-head text-sm font-semibold text-ink">Case Details</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Case Number" name="caseNumber" error={shown("caseNumber")}>
-            <input
-              required
-              className={shown("caseNumber") ? inputErrorClass : inputClass}
-              placeholder="e.g. 123/2025"
-              value={form.caseNumber}
-              onChange={(e) => set("caseNumber", e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, caseNumber: true }))}
-            />
-          </Field>
           <Field label="Case Type">
             <Autocomplete
               required
@@ -547,7 +926,7 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
         const sideParties = parties.filter((p) => p.side === side);
         return (
           <div key={side} className="card space-y-4 p-5">
-            <div className="flex items-center justify-between">
+            <div className="section-head flex items-center justify-between">
               <h2 className="text-sm font-semibold text-ink">
                 Party {side}
                 <span className="ml-1.5 text-xs font-normal text-faint">
@@ -569,7 +948,7 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
             ) : (
               <div className="space-y-4">
                 {sideParties.map((p, i) => (
-                  <div key={p.key} className="rounded-xl border border-line p-4">
+                  <div key={p.key} style={tint(p.key)} className="tint rounded-xl border p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <p className="text-xs font-medium uppercase tracking-wide text-faint">
                         {sideParties.length > 1 ? `Person ${i + 1}` : "Details"}

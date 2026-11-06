@@ -37,6 +37,15 @@ export async function POST(req: NextRequest) {
     status: body.status ?? "Active",
     priority: body.priority ?? "Medium",
     parties: body.parties ?? [],
+    district: body.district,
+    caseNo: body.caseNo,
+    caseYear: body.caseYear,
+    firNo: body.firNo,
+    firYear: body.firYear,
+    policeStation: body.policeStation,
+    policeStationName: body.policeStationName,
+    cfmsCaseCode: body.cfmsCaseCode,
+    cfmsStatus: body.cfmsStatus,
   });
 
   return NextResponse.json(created, { status: 201 });

@@ -1,5 +1,6 @@
 import type { Task } from "@/lib/types";
 import { formatDate, relativeDayLabel } from "@/lib/format";
+import { tint } from "@/lib/urgency";
 
 function urgency(dueDate?: string): "overdue" | "today" | "tomorrow" | "later" | "none" {
   if (!dueDate) return "none";
@@ -38,7 +39,8 @@ export function DashboardTasksList({
           <a
             key={t.id}
             href={t.caseId ? `/cases/${t.caseId}` : "/tasks"}
-            className="flex items-center justify-between gap-3 rounded-xl border border-line bg-raised px-3.5 py-2.5 transition-colors hover:bg-brand-50"
+            style={tint(t.caseId ?? t.id)}
+            className="tint flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5 transition-[filter] hover:brightness-95"
           >
             <span className="min-w-0 truncate text-sm font-medium text-ink">{t.title}</span>
             <span

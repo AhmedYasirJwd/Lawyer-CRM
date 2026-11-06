@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, BookOpen, ChevronRight } from "lucide-react";
 import type { LawActMeta } from "@/lib/types";
 import { PageHeader } from "./PageHeader";
+import { tint } from "@/lib/urgency";
 
 export function MajorActsExplorer({ acts }: { acts: LawActMeta[] }) {
   const [query, setQuery] = useState("");
@@ -40,7 +41,8 @@ export function MajorActsExplorer({ acts }: { acts: LawActMeta[] }) {
             <Link
               key={act.slug}
               href={`/major-acts/${act.slug}`}
-              className="card flex items-start gap-3 p-4 transition-colors hover:border-brand-600 hover:bg-brand-50/40"
+              style={tint(act.slug)}
+              className="card tint flex items-start gap-3 p-4 transition-colors hover:border-brand-600 hover:bg-brand-50/40"
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
                 <BookOpen size={19} />

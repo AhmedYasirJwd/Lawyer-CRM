@@ -22,7 +22,8 @@ export function SectionCard({
 
   return (
     <section className={`card p-5 ${className}`}>
-      <div className="flex items-center justify-between">
+      {/* "section-head" turns into a tinted band inside a .case-accent wrapper (globals.css). */}
+      <div className="section-head flex items-center justify-between">
         <h2 className="text-base font-semibold text-ink">{title}</h2>
         <div className="flex items-center gap-3">
           {viewAllHref && (

@@ -3,6 +3,7 @@
 import { ArrowLeft, FolderX } from "lucide-react";
 import { CaseForm } from "@/components/CaseForm";
 import { useOfflineCaseDetail } from "@/hooks/useOfflineData";
+import { DeleteCaseButton } from "@/components/DeleteCaseButton";
 
 export function EditCaseClient({ caseId }: { caseId: string }) {
   const { legalCase: item, loading, notCached, isOffline } = useOfflineCaseDetail(caseId);
@@ -58,6 +59,9 @@ export function EditCaseClient({ caseId }: { caseId: string }) {
         <h1 className="mt-2 text-xl font-bold text-ink sm:text-2xl">Edit Case</h1>
       </div>
       <CaseForm initial={item} />
+      <div className="mt-8 flex justify-center border-t border-line pt-5">
+        <DeleteCaseButton caseId={item.id} caseLabel={`case #${item.caseNumber}`} variant="link" />
+      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { formatDate, relativeDayLabel } from "@/lib/format";
 import { useOfflineCollection } from "@/hooks/useOfflineData";
 import { saveTask } from "@/lib/task-sync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { tint } from "@/lib/urgency";
 
 const TABS = ["Pending", "Completed", "All"] as const;
 
@@ -92,7 +93,8 @@ export function TasksExplorer() {
               return (
                 <div
                   key={task.id}
-                  className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0"
+                  style={tint(task.caseId ?? task.id)}
+                  className="flex items-center gap-3 tint mb-2 rounded-xl border px-3 py-2.5 last:mb-0"
                 >
                   <button
                     type="button"

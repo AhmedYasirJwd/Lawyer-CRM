@@ -8,6 +8,7 @@ import { compressImageIfNeeded } from "@/lib/compress-image";
 import { isDocumentSavedOffline, saveDocumentOffline, removeDocumentOffline } from "@/lib/document-offline-cache";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { DocumentViewer } from "./DocumentViewer";
+import { tint } from "@/lib/urgency";
 
 export function DocumentsSection({ caseId, initialDocuments }: { caseId: string; initialDocuments: CaseDocument[] }) {
   const [documents, setDocuments] = useState(initialDocuments);
@@ -127,7 +128,8 @@ export function DocumentsSection({ caseId, initialDocuments }: { caseId: string;
             return (
               <li
                 key={doc.id}
-                className="flex items-center gap-3 rounded-xl border border-line px-3.5 py-3"
+                style={tint(doc.id)}
+                className="tint flex items-center gap-3 rounded-xl border px-3.5 py-3"
               >
                 <FileText size={18} className="shrink-0 text-faint" />
                 <button

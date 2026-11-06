@@ -55,6 +55,17 @@ function mapCase(row: any): LegalCase {
     parties,
     timeline,
     notes: row.notes ?? undefined,
+    district: row.district ?? undefined,
+    caseNo: row.case_no ?? undefined,
+    caseYear: row.case_year ?? undefined,
+    firNo: row.fir_no ?? undefined,
+    firYear: row.fir_year ?? undefined,
+    policeStation: row.police_station ?? undefined,
+    policeStationName: row.police_station_name ?? undefined,
+    cfmsCaseCode: row.cfms_case_code ?? undefined,
+    cfmsStatus: row.cfms_status ?? undefined,
+    cfmsSyncedAt: row.cfms_synced_at ?? undefined,
+    cfmsRecord: row.cfms_record ?? undefined,
   };
 }
 
@@ -148,6 +159,15 @@ export async function createCase(
       status: data.status,
       priority: data.priority,
       notes: data.notes ?? null,
+      district: data.district ?? null,
+      case_no: data.caseNo || null,
+      case_year: data.caseYear || null,
+      fir_no: data.firNo || null,
+      fir_year: data.firYear || null,
+      police_station: data.policeStation || null,
+      police_station_name: data.policeStationName || null,
+      cfms_case_code: data.cfmsCaseCode || null,
+      cfms_status: data.cfmsStatus || null,
     })
     .select()
     .single();
@@ -214,6 +234,15 @@ export async function updateCase(id: string, patch: Partial<LegalCase>): Promise
   if (patch.status !== undefined) columnPatch.status = patch.status;
   if (patch.priority !== undefined) columnPatch.priority = patch.priority;
   if (patch.notes !== undefined) columnPatch.notes = patch.notes;
+  if (patch.district !== undefined) columnPatch.district = patch.district || null;
+  if (patch.caseNo !== undefined) columnPatch.case_no = patch.caseNo || null;
+  if (patch.caseYear !== undefined) columnPatch.case_year = patch.caseYear || null;
+  if (patch.firNo !== undefined) columnPatch.fir_no = patch.firNo || null;
+  if (patch.firYear !== undefined) columnPatch.fir_year = patch.firYear || null;
+  if (patch.policeStation !== undefined) columnPatch.police_station = patch.policeStation || null;
+  if (patch.policeStationName !== undefined) columnPatch.police_station_name = patch.policeStationName || null;
+  if (patch.cfmsCaseCode !== undefined) columnPatch.cfms_case_code = patch.cfmsCaseCode || null;
+  if (patch.cfmsStatus !== undefined) columnPatch.cfms_status = patch.cfmsStatus || null;
 
   const { error } = await supabase.from("cases").update(columnPatch).eq("id", id);
   if (error) throw error;

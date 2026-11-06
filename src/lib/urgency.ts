@@ -40,3 +40,11 @@ export function caseTone(caseId: string, iso?: string) {
     bar: `tone-bar${none}`,
   };
 }
+
+/** The light background every item card gets (the `tint` class in
+ *  globals.css). The hue is derived from the key, so each item gets its own
+ *  shade automatically — new entries included — and keeps it. Pass the
+ *  case id for anything belonging to a case so it matches that case's color. */
+export function tint(key: string): CSSProperties {
+  return { "--h": hueFor(key) } as CSSProperties;
+}

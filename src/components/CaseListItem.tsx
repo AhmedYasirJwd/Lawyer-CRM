@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import type { LegalCase } from "@/lib/types";
 import { caseCode } from "@/lib/format";
 import { StatusBadge } from "./Badge";
+import { tint } from "@/lib/urgency";
 
 export function CaseListItem({ item }: { item: LegalCase }) {
   const code = caseCode(item.caseType);
@@ -15,7 +16,8 @@ export function CaseListItem({ item }: { item: LegalCase }) {
      
     <a
       href={`/cases/${item.id}`}
-      className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0"
+      style={tint(item.id)}
+      className="flex items-center gap-3 tint mb-2 rounded-xl border px-3 py-2.5 last:mb-0"
     >
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
         {code}

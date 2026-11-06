@@ -14,7 +14,7 @@ function clientName(c: LegalCase): string {
 
 /** The next hearing as a calendar-style block — the first thing a lawyer
  *  scans a case list for. Tinted with the case's tone (see caseTone). */
-function DateBlock({ iso, className, size }: { iso?: string; className: string; size: "sm" | "lg" }) {
+export function DateBlock({ iso, className, size }: { iso?: string; className: string; size: "sm" | "lg" }) {
   const box = size === "lg" ? "h-12 w-12 sm:h-14 sm:w-14" : "h-11 w-11";
   return (
     <span className={`flex ${box} shrink-0 flex-col items-center justify-center rounded-xl text-center ${className}`}>

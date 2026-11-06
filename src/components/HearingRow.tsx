@@ -1,13 +1,14 @@
 import { ChevronRight, Pencil } from "lucide-react";
 import type { Hearing, LegalCase } from "@/lib/types";
 import { dayNumber, monthShort, formatTime, relativeDayLabel } from "@/lib/format";
+import { tint } from "@/lib/urgency";
 
 export function HearingRow({ hearing, legalCase }: { hearing: Hearing; legalCase?: LegalCase }) {
   const label = relativeDayLabel(hearing.date);
   const isToday = label === "Today";
 
   return (
-    <div className="flex items-center gap-2 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0">
+    <div style={tint(hearing.caseId)} className="flex items-center gap-2 tint mb-2 rounded-xl border px-3 py-2.5 last:mb-0">
       <a href={legalCase ? `/cases/${legalCase.id}` : "#"} className="flex min-w-0 flex-1 items-center gap-3">
         <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-brand-50 text-brand-700">
           <span className="text-[10px] font-medium leading-none">{monthShort(hearing.date)}</span>

@@ -5,21 +5,16 @@ import Link from "next/link";
 import { ChevronDown, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { useOfflineCollection } from "@/hooks/useOfflineData";
-import type { LegalCase } from "@/lib/types";
-import type { CauseList, CauseListRow, CaseProfile } from "@/lib/cfms";
+import { formatDate } from "@/lib/format";
+import { tint } from "@/lib/urgency";
+import type { CourtRecord, LegalCase } from "@/lib/types";
+import type { CauseList, CauseListRow } from "@/lib/cfms";
 
-type CauseListResponse = CauseList & { searchedBy: "cnic" | "advocateCode"; fetchedAt: string };
+type CauseListResponse = CauseList & { fetchedAt: string };
 type LoadState =
   | { status: "loading" }
   | { status: "error"; error: string; needsProfile?: boolean }
   | { status: "ready"; data: CauseListResponse };
-
-// CFMS and the CRM rarely format case numbers identically ("Suit No. 12/2024"
-// vs "12/2024"), so compare on the trailing number/year pair when present.
-function caseKey(caseNo: string): string {
-  const m = caseNo.match(/(\d+)\s*\/\s*(\d{2,4})/);
-  return m ? `${Number(m[1])}/${m[2].slice(-2)}` : caseNo.toLowerCase().replace(/[^a-z0-9]/g, "");
-}
 
 export function CauseListExplorer() {
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -32,7 +27,7 @@ export function CauseListExplorer() {
       const body = await res.json();
       setState(res.ok ? { status: "ready", data: body } : { status: "error", ...body });
     } catch {
-      setState({ status: "error", error: "You're offline — the cause list needs a connection." });
+      setState({ status: "error", error: "You're offline. The cause list needs a connection." });
     }
   }, []);
 
@@ -41,19 +36,22 @@ export function CauseListExplorer() {
     load();
   }, [load]);
 
-  const casesByKey = useMemo(() => new Map(cases.map((c) => [caseKey(c.caseNumber), c])), [cases]);
+  const casesByCode = useMemo(
+    () => new Map(cases.filter((c) => c.cfmsCaseCode).map((c) => [c.cfmsCaseCode!, c])),
+    [cases]
+  );
 
   return (
     <div>
       <PageHeader
         title="Cause List"
-        subtitle="Today's hearings from the District Courts of Sindh (CFMS)"
+        subtitle="Your upcoming hearings from the District Courts of Sindh"
         action={
           <button
             type="button"
             onClick={load}
             disabled={state.status === "loading"}
-            className="flex items-center gap-1.5 rounded-xl border border-line px-3 py-2 text-sm font-semibold text-ink hover:bg-background disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold text-ink hover:bg-background disabled:opacity-60"
           >
             <RefreshCw size={14} className={state.status === "loading" ? "animate-spin" : ""} />
             Refresh
@@ -81,16 +79,19 @@ export function CauseListExplorer() {
       {state.status === "ready" && (
         <>
           <p className="mb-3 text-xs text-muted">
-            {state.data.advocateName ? `Daily list of ${state.data.advocateName} · ` : ""}
-            Matched by {state.data.searchedBy === "cnic" ? "CNIC" : "advocate code"} · fetched{" "}
-            {new Date(state.data.fetchedAt).toLocaleTimeString()}
+            {state.data.advocateName ? `${state.data.advocateName} · ` : ""}
+            {state.data.rows.length} listed · fetched {new Date(state.data.fetchedAt).toLocaleTimeString()}
           </p>
           {state.data.rows.length === 0 ? (
-            <div className="card p-5 text-sm text-muted">No cases on your cause list today.</div>
+            <div className="card p-5 text-sm text-muted">No upcoming hearings listed for you.</div>
           ) : (
             <div className="space-y-3">
               {state.data.rows.map((row, i) => (
-                <CauseListItem key={row.caseCode ?? i} row={row} match={casesByKey.get(caseKey(row.caseNo))} />
+                <CauseListItem
+                  key={`${row.caseCode ?? i}-${row.hearingDate}`}
+                  row={row}
+                  match={row.caseCode ? casesByCode.get(row.caseCode) : undefined}
+                />
               ))}
             </div>
           )}
@@ -102,7 +103,7 @@ export function CauseListExplorer() {
 
 function CauseListItem({ row, match }: { row: CauseListRow; match?: LegalCase }) {
   const [open, setOpen] = useState(false);
-  const [profile, setProfile] = useState<CaseProfile | { error: string } | null>(null);
+  const [profile, setProfile] = useState<{ record: CourtRecord } | { error: string } | null>(null);
 
   async function toggle() {
     const next = !open;
@@ -117,18 +118,22 @@ function CauseListItem({ row, match }: { row: CauseListRow; match?: LegalCase })
   }
 
   return (
-    <div className="card p-4">
+    <div style={tint(row.caseCode ?? row.caseNo)} className="card tint p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="font-semibold text-ink">{row.caseNo}</p>
-          {row.hearingStatus && <p className="text-sm text-muted">{row.hearingStatus}</p>}
+          <p className="font-semibold text-ink">
+            {row.caseType} {row.caseNo}/{row.caseYear}
+          </p>
+          <p className="text-sm text-muted">{row.title}</p>
+          <p className="text-xs text-faint">{row.court}</p>
+          {row.hearingDate && <p className="mt-1 text-sm font-semibold text-ink">{formatDate(row.hearingDate)}</p>}
         </div>
         {match ? (
           <Link
             href={`/cases/${match.id}`}
             className="flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700"
           >
-            {match.title} <ExternalLink size={12} />
+            In your cases <ExternalLink size={12} />
           </Link>
         ) : (
           <span className="rounded-lg bg-background px-2 py-1 text-xs text-muted">Not in your cases</span>
@@ -146,7 +151,7 @@ function CauseListItem({ row, match }: { row: CauseListRow; match?: LegalCase })
           .map(([label, value]) => (
             <div key={label} className="flex gap-2">
               <dt className="shrink-0 text-muted">{label}:</dt>
-              <dd className="text-ink">{value}</dd>
+              <dd className="min-w-0 text-ink">{value}</dd>
             </div>
           ))}
       </dl>
@@ -158,29 +163,29 @@ function CauseListItem({ row, match }: { row: CauseListRow; match?: LegalCase })
           className="mt-3 flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
         >
           <ChevronDown size={14} className={open ? "rotate-180" : ""} />
-          Case profile
+          Court diary
         </button>
       )}
 
       {open && (
-        <div className="mt-2 rounded-xl bg-background p-3 text-sm">
+        <div className="mt-2 rounded-xl bg-white p-3 text-sm">
           {!profile ? (
             <span className="flex items-center gap-2 text-muted">
               <Loader2 size={14} className="animate-spin" /> Loading…
             </span>
           ) : "error" in profile ? (
             <span className="text-red-600">{profile.error}</span>
-          ) : profile.fields.length > 0 ? (
-            <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-              {profile.fields.map((f, i) => (
-                <div key={i} className="flex gap-2">
-                  <dt className="shrink-0 text-muted">{f.label}:</dt>
-                  <dd className="text-ink">{f.value || "—"}</dd>
-                </div>
+          ) : profile.record.diary.length > 0 ? (
+            <ol className="space-y-2">
+              {profile.record.diary.map((entry) => (
+                <li key={entry.date}>
+                  <p className="font-semibold text-ink">{formatDate(entry.date)}</p>
+                  <p className="text-muted">{entry.text || "Next hearing"}</p>
+                </li>
               ))}
-            </dl>
+            </ol>
           ) : (
-            <p className="text-muted">{profile.text || "No details available."}</p>
+            <p className="text-muted">No diary entries yet.</p>
           )}
         </div>
       )}

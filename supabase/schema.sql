@@ -226,3 +226,28 @@ alter table public.profiles enable row level security;
 drop policy if exists "own profiles" on public.profiles;
 create policy "own profiles" on public.profiles for all
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ------------------------------------------------------------- court records --
+-- How a case is identified at court (district + case no/year or FIR no/year)
+-- and its link to the district courts site (CFMS). cfms_case_code is the site's
+-- stable id: once set, the nightly update (src/app/api/cron/cfms-sync) goes
+-- straight to the case without searching again. cfms_record is the last copy of
+-- its court record (court, sections, advocates, diary).
+
+alter table public.cases add column if not exists district text;
+alter table public.cases add column if not exists case_no text;
+alter table public.cases add column if not exists case_year text;
+alter table public.cases add column if not exists fir_no text;
+alter table public.cases add column if not exists fir_year text;
+alter table public.cases add column if not exists police_station text;
+alter table public.cases add column if not exists police_station_name text;
+alter table public.cases add column if not exists cfms_case_code text;
+alter table public.cases add column if not exists cfms_status text;
+alter table public.cases add column if not exists cfms_synced_at timestamptz;
+alter table public.cases add column if not exists cfms_record jsonb;
+
+-- One copy of a court case per account, so "add" can't create duplicates.
+create unique index if not exists cases_user_cfms_code_key
+  on public.cases (user_id, cfms_case_code) where cfms_case_code is not null;
+create index if not exists cases_cfms_synced_at_idx
+  on public.cases (cfms_synced_at) where cfms_case_code is not null;

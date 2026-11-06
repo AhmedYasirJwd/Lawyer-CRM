@@ -179,6 +179,31 @@ export interface LegalCase {
   parties: Party[];
   timeline: TimelineEvent[];
   notes?: string;
+  // How the case is identified at court. Either case no + year or FIR no +
+  // year is set. Older cases may only have the free-text caseNumber above.
+  district?: string;
+  caseNo?: string;
+  caseYear?: string;
+  firNo?: string;
+  firYear?: string;
+  /** The site's id for the police station — FIR searches need it. */
+  policeStation?: string;
+  policeStationName?: string;
+  /** The site's stable id for this case. Set once it's linked to a court
+   *  record; the nightly update looks the case up by this. */
+  cfmsCaseCode?: string;
+  cfmsStatus?: string;
+  cfmsSyncedAt?: string;
+  cfmsRecord?: CourtRecord;
+}
+
+/** The last copy of a case's court record, saved at each update. */
+export interface CourtRecord {
+  court: string;
+  sections: string;
+  advocate1: string;
+  advocate2: string;
+  diary: { date: string; text: string }[];
 }
 
 export interface CaseDocument {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FileEdit, Search, X } from "lucide-react";
 import { PageHeader } from "./PageHeader";
 import type { DraftTemplate } from "@/lib/drafts";
+import { tint } from "@/lib/urgency";
 
 export function DraftsExplorer({ templates }: { templates: DraftTemplate[] }) {
   const [query, setQuery] = useState("");
@@ -52,7 +53,8 @@ export function DraftsExplorer({ templates }: { templates: DraftTemplate[] }) {
             <Link
               key={d.id}
               href={`/drafts/${d.id}`}
-              className="card flex flex-col gap-3 p-5 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
+              style={tint(d.id)}
+              className="card tint flex flex-col gap-3 p-5 transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
                 <FileEdit size={19} />

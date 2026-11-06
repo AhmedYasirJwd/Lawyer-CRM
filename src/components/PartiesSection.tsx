@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Phone, IdCard, MapPin, User } from "lucide-react";
 import type { Party, PartySide } from "@/lib/types";
+import { tint } from "@/lib/urgency";
 
 function PartyCard({ party, showRole }: { party: Party; showRole: boolean }) {
   return (
-    <div className="flex-1">
+    <div style={tint(party.id)} className="tint flex-1 rounded-xl border p-3">
       <div className="flex items-center gap-2 text-sm font-medium text-ink">
         <User size={15} className="text-faint" />
         {party.name}

@@ -6,6 +6,7 @@ import type { LegalCase, Task } from "@/lib/types";
 import { PageHeader } from "./PageHeader";
 import { StatusBadge } from "./Badge";
 import { caseCode, formatDate } from "@/lib/format";
+import { tint } from "@/lib/urgency";
 
 export function SearchExplorer({ cases, tasks }: { cases: LegalCase[]; tasks: Task[] }) {
   const [query, setQuery] = useState("");
@@ -54,7 +55,8 @@ export function SearchExplorer({ cases, tasks }: { cases: LegalCase[]; tasks: Ta
                 <a
                   key={c.id}
                   href={`/cases/${c.id}`}
-                  className="flex items-center gap-3 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0"
+                  style={tint(c.id)}
+                  className="flex items-center gap-3 tint mb-2 rounded-xl border px-3 py-2.5 last:mb-0"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
                     {caseCode(c.caseType)}
@@ -78,7 +80,8 @@ export function SearchExplorer({ cases, tasks }: { cases: LegalCase[]; tasks: Ta
               {matchedTasks.map((t) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between gap-3 border-b border-line py-3 last:border-b-0 last:pb-0 first:pt-0"
+                  style={tint(t.caseId ?? t.id)}
+                  className="flex items-center justify-between gap-3 tint mb-2 rounded-xl border px-3 py-2.5 last:mb-0"
                 >
                   <p className="min-w-0 flex-1 truncate text-sm font-medium text-ink">{t.title}</p>
                   {t.dueDate && <span className="shrink-0 text-xs text-muted">Due {formatDate(t.dueDate)}</span>}

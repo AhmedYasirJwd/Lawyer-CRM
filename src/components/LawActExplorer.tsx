@@ -6,6 +6,7 @@ import { Search, FileText } from "lucide-react";
 import type { LawActDetail, LawSection } from "@/lib/types";
 import { PageHeader } from "./PageHeader";
 import { LawPdfViewer } from "./LawPdfViewer";
+import { tint } from "@/lib/urgency";
 
 export function LawActExplorer({ act, pdfUrl }: { act: LawActDetail; pdfUrl: string }) {
   const [query, setQuery] = useState("");
@@ -78,7 +79,8 @@ export function LawActExplorer({ act, pdfUrl }: { act: LawActDetail; pdfUrl: str
                   key={s.number}
                   type="button"
                   onClick={() => openSection(s)}
-                  className="card flex items-start gap-3 p-3.5 text-left transition-colors hover:border-brand-600 hover:bg-brand-50/40"
+                  style={tint(String(s.number))}
+                  className="card tint flex items-start gap-3 p-3.5 text-left transition-colors hover:border-brand-600 hover:bg-brand-50/40"
                 >
                   <span className="mt-0.5 flex h-8 min-w-[2.25rem] shrink-0 items-center justify-center rounded-lg bg-brand-100 px-2 text-xs font-bold text-brand-700">
                     {s.number}
