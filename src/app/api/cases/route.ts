@@ -34,8 +34,6 @@ export async function POST(req: NextRequest) {
     caseType: body.caseType ?? "Civil Suit",
     counselFor: body.counselFor ?? "",
     stage: body.stage ?? "Filed",
-    status: body.status ?? "Active",
-    priority: body.priority ?? "Medium",
     parties: body.parties ?? [],
     district: body.district,
     caseNo: body.caseNo,

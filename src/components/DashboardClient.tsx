@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FolderOpen, Calendar, ClipboardCheck, Plus } from "lucide-react";
+import { Calendar, ClipboardCheck, Plus } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { AdSlot } from "@/components/AdSlot";
 import { StatCard } from "@/components/StatCard";
@@ -43,7 +43,6 @@ export function DashboardClient() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime();
   const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).getTime();
   const stats = {
-    activeCases: cases.filter((c) => c.status === "Active").length,
     hearingsThisMonth: hearings.filter((h) => {
       const t = new Date(h.date).getTime();
       return t >= monthStart && t < monthEnd;
@@ -88,14 +87,7 @@ export function DashboardClient() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-2">
-            <StatCard
-              icon={FolderOpen}
-              value={stats.activeCases}
-              label="Active Cases"
-              tone="success"
-              href="/cases?status=Active"
-            />
+          <div className="grid grid-cols-2 gap-2">
             <StatCard
               icon={Calendar}
               value={stats.hearingsThisMonth}

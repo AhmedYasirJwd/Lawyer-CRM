@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, AlertCircle, WifiOff, Search, CheckCircle2 } from "lucide-react";
-import type { CaseStatus, LegalCase, Priority, PartySide, RelationType } from "@/lib/types";
+import type { LegalCase, PartySide, RelationType } from "@/lib/types";
 import { CASE_ROLES, CASE_TYPES, CASE_STAGES, RELATION_TYPES } from "@/lib/types";
 import { Autocomplete } from "./Autocomplete";
 import { KARACHI_COURTS } from "@/lib/karachi-courts";
@@ -18,9 +18,8 @@ import {
   validateCaseReference,
 } from "@/lib/cfms-parse";
 import { CourtSearchPicker, type LinkedCourtCase } from "./CourtSearchPicker";
+import { usePoliceStations } from "@/hooks/usePoliceStations";
 
-const STATUSES: CaseStatus[] = ["Active", "Pending", "Closed", "Disposed"];
-const PRIORITIES: Priority[] = ["High", "Medium", "Low"];
 const STAGES = CASE_STAGES;
 const PARTY_1_ROLES = [
   "Plaintiff",
@@ -383,25 +382,7 @@ function PoliceStationField({
   value: string;
   onChange: (code: string, name: string) => void;
 }) {
-  const [loaded, setLoaded] = useState<{ district: string; stations: { code: string; name: string }[] } | null>(null);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/cfms/police-stations?district=${encodeURIComponent(district)}`)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((body) => {
-        if (!cancelled) setLoaded({ district, stations: body.stations });
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [district]);
-
-  const stations = loaded?.district === district ? loaded.stations : null;
+  const { stations, failed } = usePoliceStations(district);
 
   return (
     <Field label="Police Station">
@@ -450,8 +431,6 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     caseType: initial?.caseType ?? CASE_TYPES[0],
     counselFor: initial?.counselFor ?? CASE_ROLES[0],
     stage: initial?.stage ?? STAGES[0],
-    status: initial?.status ?? "Active",
-    priority: initial?.priority ?? "Medium",
   });
 
   const [parties, setParties] = useState<PartyDraft[]>(
@@ -558,7 +537,7 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
     setLinked(picked);
     setPicker(null);
     if (!picked.heading) return;
-    const { heading, court, institutedOn, disposed, counselSide } = picked;
+    const { heading, court, institutedOn, counselSide } = picked;
 
     const found = parseParties(heading.title);
     const hasParties = parties.some((p) => p.name.trim());
@@ -585,7 +564,6 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       filingDate: institutedOn ?? f.filingDate,
       counselFor: counselRole ?? f.counselFor,
       stage: f.stage === STAGES[0] ? "Filed / Institution" : f.stage,
-      status: disposed ? "Disposed" : f.status,
     }));
   }
 
@@ -673,8 +651,6 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       caseType: form.caseType,
       counselFor: form.counselFor,
       stage: form.stage,
-      status: form.status,
-      priority: form.priority,
       parties: partiesPayload,
     };
 
@@ -687,8 +663,6 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
       caseType: payload.caseType,
       counselFor: payload.counselFor,
       stage: payload.stage,
-      status: payload.status,
-      priority: payload.priority,
       lastUpdated: new Date().toISOString(),
       parties: partiesPayload,
       district: payload.district,
@@ -895,30 +869,6 @@ export function CaseForm({ initial }: { initial?: LegalCase }) {
               options={STAGES}
             />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Status">
-              <select
-                className={inputClass}
-                value={form.status}
-                onChange={(e) => set("status", e.target.value as CaseStatus)}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Priority">
-              <select
-                className={inputClass}
-                value={form.priority}
-                onChange={(e) => set("priority", e.target.value as Priority)}
-              >
-                {PRIORITIES.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
         </div>
       </div>
 

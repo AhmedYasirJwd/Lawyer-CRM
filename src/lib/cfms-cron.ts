@@ -11,7 +11,7 @@ const CONCURRENCY = 3;
 // run (see vercel.json) pick up only what the first didn't reach.
 const FRESH_MS = 12 * 60 * 60 * 1000;
 
-/** Updates every open, linked case across all accounts from the court website,
+/** Updates every linked case the court hasn't disposed of, across all accounts, from the court website,
  *  least recently updated first. One case failing doesn't stop the rest: it just
  *  stays the stalest, so it's first in line next time. */
 export async function runNightlyCourtSync() {
@@ -22,7 +22,8 @@ export async function runNightlyCourtSync() {
     .from("cases")
     .select("*")
     .not("cfms_case_code", "is", null)
-    .not("status", "in", "(Closed,Disposed)")
+    // Not a plain .not(): that would also drop cases with no court status yet.
+    .or("cfms_status.is.null,cfms_status.not.ilike.disposed*")
     .or(`cfms_synced_at.is.null,cfms_synced_at.lt.${new Date(started - FRESH_MS).toISOString()}`)
     .order("cfms_synced_at", { ascending: true, nullsFirst: true })
     .limit(1000);

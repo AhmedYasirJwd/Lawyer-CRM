@@ -4,7 +4,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Plus, Trash2, WifiOff } from "lucide-react";
 import type { Task } from "@/lib/types";
-import { PriorityBadge } from "./Badge";
 import { formatDate, relativeDayLabel } from "@/lib/format";
 import { saveTask } from "@/lib/task-sync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -84,7 +83,6 @@ export function CaseTasksSection({ caseId, initialTasks }: { caseId: string; ini
                       </p>
                     )}
                   </div>
-                  {task.priority && !done && <PriorityBadge priority={task.priority} />}
                   {/* Plain <a>, not next/link — same reasoning as "Add Task" above. */}
                   { }
                   <a

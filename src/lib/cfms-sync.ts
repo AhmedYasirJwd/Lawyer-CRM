@@ -15,7 +15,6 @@ export interface SyncableCase {
   user_id: string;
   court: string;
   counsel_for: string | null;
-  status: string;
   district: string | null;
   case_no: string | null;
   case_year: string | null;
@@ -50,9 +49,9 @@ function hearingTime(date: string, diary: CourtRecord["diary"]): { hour: number;
   return { hour: 9, minute: 0 };
 }
 
-/** Whether the court now lists the case as disposed. The profile page doesn't
- *  say, only the search does, so this is only worth asking when the diary has
- *  no upcoming date. Never fails the sync: the answer is a bonus. */
+/** The court's status for the case. The profile page doesn't give it, only the
+ *  search does, so this is only worth asking when it may have changed. Never
+ *  fails the sync: the answer is a bonus. */
 async function lookUpStatus(row: SyncableCase, session: CfmsSession) {
   if (!row.district) return undefined;
   try {
@@ -157,17 +156,14 @@ export async function syncCase(
     cfms_synced_at: new Date().toISOString(),
   };
 
-  if (!next) {
+  // No upcoming date may mean it was disposed. A date on a disposed case means
+  // the court has listed it again, and it needs to go back into the nightly run.
+  const wasDisposed = /^disposed/i.test(row.cfms_status ?? "");
+  if (!next || wasDisposed) {
     const found = await lookUpStatus(row, session);
     if (found) {
       patch.cfms_status = found.status;
-      // Only on the change to disposed, so a lawyer who reopens the case by hand
-      // isn't overridden every night afterwards.
-      const newlyDisposed = found.disposed && !/^disposed/i.test(row.cfms_status ?? "");
-      if (newlyDisposed && row.status !== "Closed" && row.status !== "Disposed") {
-        patch.status = "Disposed";
-        result.disposed = true;
-      }
+      result.disposed = found.disposed && !wasDisposed;
     }
   }
 

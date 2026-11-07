@@ -55,7 +55,7 @@ export function BottomNav() {
                   <X size={18} />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {MORE_NAV_ITEMS.map((item) => {
                   const Icon = item.icon;
                   const active = isActive(pathname, item.href);

@@ -3,14 +3,12 @@
 import { useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Trash2, WifiOff } from "lucide-react";
-import type { LegalCase, Priority, Task } from "@/lib/types";
+import type { LegalCase, Task } from "@/lib/types";
 import { saveTask } from "@/lib/task-sync";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 const inputClass =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-faint focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
-
-const PRIORITIES: Priority[] = ["High", "Medium", "Low"];
 
 export function TaskForm({ cases, initial }: { cases: LegalCase[]; initial?: Task }) {
   const router = useRouter();
@@ -32,7 +30,6 @@ export function TaskForm({ cases, initial }: { cases: LegalCase[]; initial?: Tas
   const [title, setTitle] = useState(initial?.title ?? "");
   const [caseId, setCaseId] = useState(initial?.caseId ?? presetCaseId);
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? new Date().toISOString().slice(0, 10));
-  const [priority, setPriority] = useState<Priority>(initial?.priority ?? "Medium");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,13 +37,12 @@ export function TaskForm({ cases, initial }: { cases: LegalCase[]; initial?: Tas
     setError(null);
     setSavedOfflineNotice(false);
 
-    const payload = { title, caseId: caseId || undefined, dueDate, priority };
+    const payload = { title, caseId: caseId || undefined, dueDate };
     const localTask: Task = {
       id: idRef.current,
       caseId: caseId || undefined,
       title,
       dueDate,
-      priority,
       status: initial?.status ?? "Pending",
     };
 
@@ -111,18 +107,6 @@ export function TaskForm({ cases, initial }: { cases: LegalCase[]; initial?: Tas
                 <option key={c.id} value={c.id}>
                   {c.caseType} #{c.caseNumber} — {c.title}
                 </option>
-              ))}
-            </select>
-          </label>
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-medium text-muted">Priority</span>
-            <select
-              className={inputClass}
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as Priority)}
-            >
-              {PRIORITIES.map((p) => (
-                <option key={p}>{p}</option>
               ))}
             </select>
           </label>

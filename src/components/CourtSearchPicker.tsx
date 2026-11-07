@@ -14,7 +14,6 @@ export interface LinkedCourtCase {
   heading?: CaseHeading;
   court?: string;
   institutedOn?: string;
-  disposed?: boolean;
   /** Which side the advocate is on, when the court record lists them. */
   counselSide?: PartySide | null;
 }
@@ -60,7 +59,6 @@ export function CourtSearchPicker({
       heading: { caseType: result.caseType, caseNo: result.caseNo, caseYear: result.caseYear, title: result.title },
       court: result.court,
       institutedOn: result.institutedOn,
-      disposed: result.disposed,
       counselSide,
     });
   }

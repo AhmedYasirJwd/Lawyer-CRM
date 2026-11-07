@@ -18,7 +18,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 // Phone bottom bar: the daily destinations, plus "More" for the rest.
 // The desktop sidebar still lists everything in NAV_ITEMS.
-const MORE_HREFS = ["/cause-list", "/major-acts", "/drafts"];
+const MORE_HREFS = ["/major-acts", "/drafts"];
 export const BOTTOM_NAV_ITEMS: NavItem[] = NAV_ITEMS.filter((item) => !MORE_HREFS.includes(item.href));
 export const MORE_NAV_ITEMS: NavItem[] = [
   ...NAV_ITEMS.filter((item) => MORE_HREFS.includes(item.href)),

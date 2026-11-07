@@ -1,7 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import type { LegalCase } from "@/lib/types";
 import { caseCode } from "@/lib/format";
-import { StatusBadge } from "./Badge";
 import { tint } from "@/lib/urgency";
 
 export function CaseListItem({ item }: { item: LegalCase }) {
@@ -28,7 +27,6 @@ export function CaseListItem({ item }: { item: LegalCase }) {
         </p>
         <p className="truncate text-xs text-muted">{item.title}</p>
       </div>
-      <StatusBadge status={item.status} />
       <ChevronRight size={16} className="shrink-0 text-faint" />
     </a>
   );

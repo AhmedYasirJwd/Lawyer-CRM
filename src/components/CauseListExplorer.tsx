@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ChevronDown, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { CourtCaseSearch } from "@/components/CourtCaseSearch";
 import { useOfflineCollection } from "@/hooks/useOfflineData";
 import { formatDate } from "@/lib/format";
 import { tint } from "@/lib/urgency";
@@ -58,6 +59,10 @@ export function CauseListExplorer() {
           </button>
         }
       />
+
+      <CourtCaseSearch casesByCode={casesByCode} />
+
+      <h2 className="mb-2 text-sm font-semibold text-ink">Your upcoming hearings</h2>
 
       {state.status === "loading" && (
         <div className="card flex items-center gap-2 p-5 text-sm text-muted">

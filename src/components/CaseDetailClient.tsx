@@ -3,14 +3,12 @@
 import { useState } from "react";
 import { ArrowLeft, Pencil, ChevronRight, FolderX } from "lucide-react";
 import { formatDate, formatTime } from "@/lib/format";
-import { StatusBadge } from "@/components/Badge";
 import { SectionCard } from "@/components/SectionCard";
 import { QuickActions } from "@/components/QuickActions";
 import { CaseInfoGrid } from "@/components/CaseInfoGrid";
 import { PartiesSection } from "@/components/PartiesSection";
 import { Timeline } from "@/components/Timeline";
 import { DocumentsSection } from "@/components/DocumentsSection";
-import { EndCaseButton } from "@/components/EndCaseButton";
 import { CaseTasksSection } from "@/components/CaseTasksSection";
 import { useOfflineCaseDetail } from "@/hooks/useOfflineData";
 import type { TimelineEvent } from "@/lib/types";
@@ -99,7 +97,6 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
         </a>
         <h1 className="hidden text-base font-semibold text-ink sm:block">Case Details</h1>
         <div className="flex items-center gap-2">
-          <EndCaseButton caseId={item.id} status={item.status} />
           <DeleteCaseButton caseId={item.id} caseLabel={`case #${item.caseNumber}`} />
           { }
           <a
@@ -119,12 +116,9 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
         <div className="flex items-center gap-3.5">
           <DateBlock iso={nextHearing?.date} className={tone.chip} size="lg" />
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold text-ink">
-                {item.caseType} No. {item.caseNumber}
-              </h2>
-              <StatusBadge status={item.status} />
-            </div>
+            <h2 className="text-lg font-bold text-ink">
+              {item.caseType} No. {item.caseNumber}
+            </h2>
             <p className="text-sm text-muted">{item.title}</p>
             <p className="text-sm text-muted">{item.court}</p>
           </div>

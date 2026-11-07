@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Search as SearchIcon, ChevronRight } from "lucide-react";
 import type { LegalCase, Task } from "@/lib/types";
 import { PageHeader } from "./PageHeader";
-import { StatusBadge } from "./Badge";
 import { caseCode, formatDate } from "@/lib/format";
 import { tint } from "@/lib/urgency";
 
@@ -67,7 +66,6 @@ export function SearchExplorer({ cases, tasks }: { cases: LegalCase[]; tasks: Ta
                     </p>
                     <p className="truncate text-xs text-muted">{c.title}</p>
                   </div>
-                  <StatusBadge status={c.status} />
                   <ChevronRight size={16} className="shrink-0 text-faint" />
                 </a>
               ))}

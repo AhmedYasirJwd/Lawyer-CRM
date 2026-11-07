@@ -1,9 +1,8 @@
-import { Hash, Calendar, FolderOpen, Landmark, Scale, Layers, Flag, CalendarClock, CalendarCheck2, MapPin, FileText } from "lucide-react";
+import { Hash, Calendar, FolderOpen, Landmark, Scale, Layers, CalendarClock, CalendarCheck2, MapPin, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Hearing, LegalCase } from "@/lib/types";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { districtLabel } from "@/lib/cfms-parse";
-import { StatusBadge } from "./Badge";
 
 function InfoRow({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: React.ReactNode }) {
   return (
@@ -57,9 +56,6 @@ export function CaseInfoGrid({
       </InfoRow>
       <InfoRow icon={Layers} label="Case Stage">
         {item.stage}
-      </InfoRow>
-      <InfoRow icon={Flag} label="Status">
-        <StatusBadge status={item.status} />
       </InfoRow>
       <InfoRow icon={CalendarCheck2} label="Last Hearing">
         {lastHearing ? formatDateTime(lastHearing.date) : "—"}

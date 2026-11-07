@@ -36,7 +36,7 @@ src/lib/db.ts                    read/write layer over data/db.json
 src/lib/format.ts                date/label formatting helpers
 src/app/
   page.tsx                       Dashboard
-  cases/page.tsx                 Cases list (search + status filter)
+  cases/page.tsx                 Cases list (search)
   cases/[id]/page.tsx            Case Details
   cases/[id]/edit/page.tsx       Edit Case
   cases/new/page.tsx             New Case
@@ -57,10 +57,10 @@ src/components/                  UI building blocks (Sidebar, BottomNav,
 See `src/lib/types.ts`. Summary:
 
 - **LegalCase**: caseNumber, title (e.g. "Ali Khan vs Ahmed & Co."), court,
-  filingDate, caseType, judge, stage, status, priority, lastUpdated, parties[],
+  filingDate, caseType, judge, stage, lastUpdated, parties[],
   timeline[]
 - **Hearing**: caseId, date (ISO datetime), purpose, court, judge
-- **Task**: title, caseId? (optional link to a case), dueDate, status, priority
+- **Task**: title, caseId? (optional link to a case), dueDate, status
 
 ## Swapping in a real database later
 

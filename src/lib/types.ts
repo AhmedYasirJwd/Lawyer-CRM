@@ -1,5 +1,3 @@
-export type CaseStatus = "Active" | "Pending" | "Closed" | "Disposed";
-export type Priority = "High" | "Medium" | "Low";
 
 // Single source of truth for the Case Type and Case Stage dropdowns —
 // used by the New/Edit Case form and the Cases list filter.
@@ -161,7 +159,6 @@ export interface Task {
   title: string;
   dueDate?: string; // ISO date
   status: "Pending" | "Completed";
-  priority?: Priority;
 }
 
 export interface LegalCase {
@@ -173,8 +170,6 @@ export interface LegalCase {
   caseType: string;
   counselFor: string;
   stage: string;
-  status: CaseStatus;
-  priority: Priority;
   lastUpdated: string; // ISO datetime
   parties: Party[];
   timeline: TimelineEvent[];
@@ -225,7 +220,6 @@ export interface Database {
 
 export interface DashboardStats {
   totalCases: number;
-  activeCases: number;
   hearingsThisMonth: number;
   pendingTasks: number;
   overdueTasks: number;

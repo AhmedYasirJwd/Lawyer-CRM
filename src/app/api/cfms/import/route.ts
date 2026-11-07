@@ -66,8 +66,6 @@ export async function POST(req: NextRequest) {
         caseType: text(body.caseType) || "Civil Suit",
         counselFor: parties.find((p) => p.side === side)?.role ?? "",
         stage: "Filed / Institution",
-        status: "Active",
-        priority: "Medium",
         parties: parties.map((p) => ({ ...p, id: crypto.randomUUID() })),
       });
       id = created.id;

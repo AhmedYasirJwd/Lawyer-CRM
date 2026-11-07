@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
     title: body.title,
     caseId: body.caseId,
     dueDate: body.dueDate,
-    priority: body.priority,
   });
 
   return NextResponse.json(created, { status: 201 });

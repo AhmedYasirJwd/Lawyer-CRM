@@ -1,28 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Plus, Search, X } from "lucide-react";
-import type { LegalCase, CaseStatus, Hearing } from "@/lib/types";
+import type { LegalCase, Hearing } from "@/lib/types";
 import { CaseTable } from "./CaseTable";
 import { PageHeader } from "./PageHeader";
 import { useOfflineCollection } from "@/hooks/useOfflineData";
 import { NewCasesButton } from "@/components/NewCasesButton";
 
-const FILTERS: Array<CaseStatus | "All"> = ["All", "Active", "Pending"];
-
 export function CasesExplorer() {
-  const searchParams = useSearchParams();
-  const statusParam = searchParams.get("status");
-  const initialStatus = (FILTERS as string[]).includes(statusParam ?? "")
-    ? (statusParam as (typeof FILTERS)[number])
-    : "All";
-
   const { data: cases, isOffline } = useOfflineCollection<LegalCase>("cases", "/api/cases");
   const { data: hearings } = useOfflineCollection<Hearing>("hearings", "/api/hearings");
 
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>(initialStatus);
 
   const hearingsByCaseId = useMemo(() => {
     const map = new Map<string, Hearing[]>();
@@ -36,7 +26,6 @@ export function CasesExplorer() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return cases
-      .filter((c) => (filter === "All" ? true : c.status === filter))
       .filter((c) =>
         q
           ? c.title.toLowerCase().includes(q) ||
@@ -45,7 +34,7 @@ export function CasesExplorer() {
           : true
       )
       .sort((a, b) => b.lastUpdated.localeCompare(a.lastUpdated));
-  }, [cases, query, filter]);
+  }, [cases, query]);
 
   const neverSynced = isOffline && cases.length === 0;
 
@@ -72,48 +61,26 @@ export function CasesExplorer() {
         }
       />
 
-      {/* Sticky search + filters — stays reachable while the list below scrolls */}
+      {/* Sticky search — stays reachable while the list below scrolls */}
       <div className="sticky top-0 z-20 -mx-4 mb-4 bg-background/85 px-4 pb-3 pt-1 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="flex flex-col gap-3">
-          <div className="relative">
-            <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by case number, party, or court"
-              className="w-full rounded-2xl border border-line bg-surface py-3 pl-11 pr-10 text-sm text-ink placeholder:text-faint shadow-sm transition-all focus:border-brand-600 focus:shadow-[0_0_0_4px_rgba(30,64,175,0.12)] focus:outline-none"
-            />
-            {query && (
-              <button
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setQuery("")}
-                className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-faint hover:bg-background hover:text-ink"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
-            {FILTERS.map((f) => {
-              const active = filter === f;
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFilter(f)}
-                  className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition-all active:scale-95 ${
-                    active
-                      ? "bg-gradient-to-b from-brand-600 to-brand-700 text-white shadow-md shadow-brand-600/35"
-                      : "border border-line bg-surface text-muted hover:border-brand-300 hover:text-brand-700"
-                  }`}
-                >
-                  {f}
-                </button>
-              );
-            })}
-          </div>
+        <div className="relative">
+          <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-faint" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by case number, party, or court"
+            className="w-full rounded-2xl border border-line bg-surface py-3 pl-11 pr-10 text-sm text-ink placeholder:text-faint shadow-sm transition-all focus:border-brand-600 focus:shadow-[0_0_0_4px_rgba(30,64,175,0.12)] focus:outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => setQuery("")}
+              className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-faint hover:bg-background hover:text-ink"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       </div>
 

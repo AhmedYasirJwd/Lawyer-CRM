@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Pencil, Plus, Trash2, WifiOff } from "lucide-react";
 import type { LegalCase, Task } from "@/lib/types";
 import { PageHeader } from "./PageHeader";
-import { PriorityBadge } from "./Badge";
 import { formatDate, relativeDayLabel } from "@/lib/format";
 import { useOfflineCollection } from "@/hooks/useOfflineData";
 import { saveTask } from "@/lib/task-sync";
@@ -115,7 +114,6 @@ export function TasksExplorer() {
                       {task.dueDate && ` · Due ${formatDate(task.dueDate)} (${relativeDayLabel(task.dueDate)})`}
                     </p>
                   </div>
-                  {task.priority && !done && <PriorityBadge priority={task.priority} />}
                   {/* Plain <a>, not next/link — same reasoning as "Add Task" above. */}
                   { }
                   <a

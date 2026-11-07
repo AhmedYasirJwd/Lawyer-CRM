@@ -49,8 +49,6 @@ function mapCase(row: any): LegalCase {
     caseType: row.case_type,
     counselFor: row.counsel_for ?? "",
     stage: row.stage,
-    status: row.status,
-    priority: row.priority,
     lastUpdated: row.last_updated,
     parties,
     timeline,
@@ -87,7 +85,6 @@ function mapTask(row: any): Task {
     title: row.title,
     dueDate: row.due_date ?? undefined,
     status: row.status,
-    priority: row.priority ?? undefined,
   };
 }
 
@@ -156,8 +153,6 @@ export async function createCase(
       case_type: data.caseType,
       counsel_for: data.counselFor,
       stage: data.stage,
-      status: data.status,
-      priority: data.priority,
       notes: data.notes ?? null,
       district: data.district ?? null,
       case_no: data.caseNo || null,
@@ -231,8 +226,6 @@ export async function updateCase(id: string, patch: Partial<LegalCase>): Promise
   if (patch.caseType !== undefined) columnPatch.case_type = patch.caseType;
   if (patch.counselFor !== undefined) columnPatch.counsel_for = patch.counselFor;
   if (patch.stage !== undefined) columnPatch.stage = patch.stage;
-  if (patch.status !== undefined) columnPatch.status = patch.status;
-  if (patch.priority !== undefined) columnPatch.priority = patch.priority;
   if (patch.notes !== undefined) columnPatch.notes = patch.notes;
   if (patch.district !== undefined) columnPatch.district = patch.district || null;
   if (patch.caseNo !== undefined) columnPatch.case_no = patch.caseNo || null;
@@ -408,7 +401,6 @@ export async function createTask(data: Omit<Task, "id" | "status"> & { status?: 
       case_id: data.caseId ?? null,
       title: data.title,
       due_date: data.dueDate ?? null,
-      priority: data.priority ?? null,
       status: data.status ?? "Pending",
     })
     .select()
@@ -425,7 +417,6 @@ export async function updateTask(id: string, patch: Partial<Task>): Promise<Task
   if (patch.caseId !== undefined) columnPatch.case_id = patch.caseId;
   if (patch.dueDate !== undefined) columnPatch.due_date = patch.dueDate;
   if (patch.status !== undefined) columnPatch.status = patch.status;
-  if (patch.priority !== undefined) columnPatch.priority = patch.priority;
 
   const { data, error } = await supabase.from("tasks").update(columnPatch).eq("id", id).select().maybeSingle();
   if (error) throw error;
@@ -495,13 +486,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const [
     { count: totalCases },
-    { count: activeCases },
     { count: hearingsThisMonth },
     { count: pendingTasks },
     { count: overdueTasks },
   ] = await Promise.all([
     supabase.from("cases").select("*", { count: "exact", head: true }),
-    supabase.from("cases").select("*", { count: "exact", head: true }).eq("status", "Active"),
     supabase
       .from("hearings")
       .select("*", { count: "exact", head: true })
@@ -517,7 +506,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   return {
     totalCases: totalCases ?? 0,
-    activeCases: activeCases ?? 0,
     hearingsThisMonth: hearingsThisMonth ?? 0,
     pendingTasks: pendingTasks ?? 0,
     overdueTasks: overdueTasks ?? 0,
